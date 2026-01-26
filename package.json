@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^13.5.11",
+    "react-easy-crop": "^5.5.6"
+  }
+}

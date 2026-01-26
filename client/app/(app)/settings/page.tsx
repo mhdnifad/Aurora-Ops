@@ -1,0 +1,94 @@
+'use client';
+
+import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Building2,
+  Users,
+  User,
+  Bell,
+  Key,
+  Settings as SettingsIcon,
+  ArrowRight,
+} from 'lucide-react';
+import { useT } from '@/lib/useT';
+
+function getSettingsSections(t: (key: string) => string) {
+  return [
+    {
+      title: t('settings.title'),
+      description: t('settings.profile'),
+      icon: Building2,
+      href: '/settings/organization',
+    },
+    {
+      title: t('nav.organizations'),
+      description: t('settings.preferences'),
+      icon: Users,
+      href: '/settings/members',
+    },
+    {
+      title: t('settings.profile'),
+      description: t('settings.profile'),
+      icon: User,
+      href: '/settings/profile',
+    },
+    {
+      title: t('settings.preferences'),
+      description: t('settings.preferences'),
+      icon: Bell,
+      href: '/settings/notifications',
+    },
+    {
+      title: t('settings.title'),
+      description: t('settings.title'),
+      icon: Key,
+      href: '/settings/api',
+    },
+    {
+      title: t('settings.preferences'),
+      description: t('settings.preferences'),
+      icon: SettingsIcon,
+      href: '/settings/preferences',
+    },
+  ];
+}
+
+export default function SettingsPage() {
+  const t = useT();
+  const settingsSections = getSettingsSections(t);
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('settings.title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{t('settings.preferences')}</p>
+        </div>
+      </div>
+
+      {/* Settings Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {settingsSections.map((section) => {
+          const Icon = section.icon;
+          return (
+            <Link key={section.href} href={section.href}>
+              <Card className="p-6 hover:shadow-lg transition cursor-pointer h-full">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <Icon className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                </div>
+                <h2 className="font-bold text-lg mb-1 text-gray-900 dark:text-gray-100">{section.title}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{section.description}</p>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
