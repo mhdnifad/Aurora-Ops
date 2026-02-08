@@ -95,6 +95,9 @@ jobs:
       - name: Copy .env.example to .env (backend)
         run: cp server/.env.example server/.env
 
+      - name: Copy .env.example to .env (before docker compose up)
+        run: cp server/.env.example server/.env
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
