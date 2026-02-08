@@ -282,10 +282,10 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
     const shell = shellRef.current;
     if (!shell) return;
 
-    const pointerMoveHandler = handlePointerMove as EventListener;
-    const pointerEnterHandler = handlePointerEnter as EventListener;
-    const pointerLeaveHandler = handlePointerLeave as EventListener;
-    const deviceOrientationHandler = handleDeviceOrientation as EventListener;
+    const pointerMoveHandler = handlePointerMove as EventListenerOrEventListenerObject;
+    const pointerEnterHandler = handlePointerEnter as EventListenerOrEventListenerObject;
+    const pointerLeaveHandler = handlePointerLeave as EventListenerOrEventListenerObject;
+    const deviceOrientationHandler = handleDeviceOrientation as EventListenerOrEventListenerObject;
 
     shell.addEventListener('pointerenter', pointerEnterHandler);
     shell.addEventListener('pointermove', pointerMoveHandler);

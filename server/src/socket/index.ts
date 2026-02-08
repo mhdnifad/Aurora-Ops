@@ -445,7 +445,7 @@ export class SocketManager {
       return;
     }
 
-    const assigneeId = typeof assignee === 'string' ? assignee : (assignee as any)?.toString?.() || String(assignee);
+    const assigneeId = typeof assignee === 'string' ? assignee : (typeof assignee === 'object' && assignee !== null && 'toString' in assignee) ? (assignee as { toString: () => string }).toString() : String(assignee);
     this.io.to(`user-tasks:${assigneeId}`).emit(`task:${event}`, task);
 
     // Also update stats for the user
