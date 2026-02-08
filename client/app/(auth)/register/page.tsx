@@ -10,6 +10,8 @@ import { Card } from '@/components/ui/card';
 import { BackButton } from '@/components/ui/back-button';
 import { toast } from 'sonner';
 import { ArrowRight, Loader, Eye, EyeOff, Mail, Lock, User, AlertCircle, Check, X } from 'lucide-react';
+import { ColorBendsSurface } from '@/components/ui/color-bends-surface';
+import { FloatingLinesSurface } from '@/components/ui/floating-lines-surface';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -26,6 +28,7 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const router = useRouter();
   const { register } = useAuth();
+  const inputClass = 'pl-11 h-12 backdrop-blur-sm bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400';
 
   const validatePassword = (password: string) => {
     const requirements = {
@@ -134,13 +137,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950 px-4 py-12">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-pink-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
-      </div>
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-gray-950 dark:via-gray-900 dark:to-emerald-950 px-4 py-12">
+      <ColorBendsSurface className="opacity-50" />
+      <FloatingLinesSurface className="opacity-30" />
 
       <Card className="w-full max-w-lg p-8 backdrop-blur-xl bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 shadow-2xl animate-fadeIn">
         {/* Back Button */}
@@ -157,6 +156,10 @@ export default function RegisterPage() {
             Create your account
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-2">Join Aurora Ops and start managing projects</p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Live account protection
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -178,8 +181,8 @@ export default function RegisterPage() {
                   onBlur={() => handleBlur('firstName')}
                   placeholder="John"
                   disabled={isLoading}
-                  className={`pl-11 h-12 backdrop-blur-sm bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${errors.firstName && touched.firstName ? 'border-red-500' : ''}`}
-                  autoComplete="given-name"
+                  className={`${inputClass} ${errors.firstName && touched.firstName ? 'border-red-500' : ''}`}
+                  aria-invalid={Boolean(errors.firstName && touched.firstName)}
                 />
               </div>
               {errors.firstName && touched.firstName && (
@@ -206,7 +209,8 @@ export default function RegisterPage() {
                   onBlur={() => handleBlur('lastName')}
                   placeholder="Doe"
                   disabled={isLoading}
-                  className={`pl-11 h-12 ${errors.lastName && touched.lastName ? 'border-red-500' : ''}`}
+                  className={`${inputClass} ${errors.lastName && touched.lastName ? 'border-red-500' : ''}`}
+                  aria-invalid={Boolean(errors.lastName && touched.lastName)}
                 />
               </div>
               {errors.lastName && touched.lastName && (
@@ -228,13 +232,15 @@ export default function RegisterPage() {
               <Input
                 id="email"
                 name="email"
-                type="email"                autoComplete="email"                value={formData.email}
+                type="email"
+                autoComplete="email"
+                value={formData.email}
                 onChange={handleChange}
                 onBlur={() => handleBlur('email')}
                 placeholder="you@example.com"
                 disabled={isLoading}
-                className={`pl-11 h-12 ${errors.email && touched.email ? 'border-red-500' : ''}`}
-                autoComplete="email"
+                className={`${inputClass} ${errors.email && touched.email ? 'border-red-500' : ''}`}
+                aria-invalid={Boolean(errors.email && touched.email)}
               />
             </div>
             {errors.email && touched.email && (
@@ -262,7 +268,8 @@ export default function RegisterPage() {
                 onBlur={() => handleBlur('password')}
                 placeholder="••••••••"
                 disabled={isLoading}
-                className={`pl-11 pr-11 h-12 ${errors.password && touched.password ? 'border-red-500' : ''}`}
+                className={`${inputClass} pr-11 ${errors.password && touched.password ? 'border-red-500' : ''}`}
+                aria-invalid={Boolean(errors.password && touched.password)}
               />
               <button
                 type="button"
@@ -276,7 +283,7 @@ export default function RegisterPage() {
 
             {/* Password Requirements */}
             {formData.password && (
-              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
+              <div className="mt-3 p-3 bg-white/60 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-lg space-y-2 backdrop-blur-sm">
                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Password must contain:</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className={`flex items-center gap-1 text-xs ${passwordRequirements.minLength ? 'text-green-600' : 'text-gray-500'}`}>
@@ -320,7 +327,8 @@ export default function RegisterPage() {
                 onBlur={() => handleBlur('passwordConfirm')}
                 placeholder="••••••••"
                 disabled={isLoading}
-                className={`pl-11 pr-11 h-12 ${errors.passwordConfirm && touched.passwordConfirm ? 'border-red-500' : ''}`}
+                className={`${inputClass} pr-11 ${errors.passwordConfirm && touched.passwordConfirm ? 'border-red-500' : ''}`}
+                aria-invalid={Boolean(errors.passwordConfirm && touched.passwordConfirm)}
                 autoComplete="new-password"
               />
               <button
@@ -376,10 +384,10 @@ export default function RegisterPage() {
         {/* Divider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
+            <div className="w-full border-t border-gray-200/70 dark:border-white/10"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500">Already have an account?</span>
+            <span className="px-4 bg-white/80 dark:bg-gray-900/80 text-gray-500">Already have an account?</span>
           </div>
         </div>
 
@@ -387,7 +395,7 @@ export default function RegisterPage() {
         <Link href="/login">
           <Button
             variant="outline"
-            className="w-full h-12 border-2 border-gray-200 hover:border-blue-600 hover:text-blue-600 font-semibold transition-all duration-200"
+            className="w-full h-12 border-2 border-gray-200/70 dark:border-white/10 hover:border-blue-600 hover:text-blue-600 font-semibold transition-all duration-200"
           >
             Sign in instead
           </Button>

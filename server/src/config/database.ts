@@ -17,8 +17,14 @@ class Database {
   public async connect(): Promise<void> {
     try {
       mongoose.set('strictQuery', false);
+      mongoose.set('autoIndex', config.env !== 'production');
 
-      await mongoose.connect(config.mongodb.uri);
+      await mongoose.connect(config.mongodb.uri, {
+        maxPoolSize: 20,
+        minPoolSize: 2,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
 
       logger.info('✅ MongoDB connected successfully');
 

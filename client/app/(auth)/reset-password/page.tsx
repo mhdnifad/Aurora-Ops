@@ -10,6 +10,8 @@ import { BackButton } from '@/components/ui/back-button';
 import { toast } from 'sonner';
 import { ArrowRight, Loader } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { ColorBendsSurface } from '@/components/ui/color-bends-surface';
+import { FloatingLinesSurface } from '@/components/ui/floating-lines-surface';
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -23,6 +25,8 @@ export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const userId = searchParams.get('userId');
+  const inputClass =
+    'h-12 bg-white/70 dark:bg-slate-900/70 border-white/30 dark:border-white/10 focus-visible:ring-emerald-500/40';
 
   useEffect(() => {
     if (!token || !userId) {
@@ -69,12 +73,9 @@ export default function ResetPasswordPage() {
 
   if (isValidating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950">
-        {/* Animated background elements */}
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        </div>
+      <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-gray-950 dark:via-gray-900 dark:to-emerald-950">
+        <ColorBendsSurface className="opacity-45" />
+        <FloatingLinesSurface className="opacity-25" />
 
         <Card className="w-full max-w-md p-8 backdrop-blur-xl bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 shadow-lg">
           <Loader className="w-8 h-8 animate-spin mx-auto text-blue-600" />
@@ -85,12 +86,9 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950 px-4">
-        {/* Animated background elements */}
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        </div>
+      <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-gray-950 dark:via-gray-900 dark:to-emerald-950 px-4">
+        <ColorBendsSurface className="opacity-45" />
+        <FloatingLinesSurface className="opacity-25" />
 
         <Card className="w-full max-w-md p-8 backdrop-blur-xl bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 shadow-lg animate-fadeIn">
           <div className="text-center">
@@ -110,13 +108,9 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950 px-4">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-pink-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
-      </div>
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-gray-950 dark:via-gray-900 dark:to-emerald-950 px-4">
+      <ColorBendsSurface className="opacity-50" />
+      <FloatingLinesSurface className="opacity-25" />
 
       <Card className="w-full max-w-md p-8 backdrop-blur-xl bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 shadow-lg animate-fadeIn">
         <div className="mb-8">
@@ -125,10 +119,14 @@ export default function ResetPasswordPage() {
           <p className="text-gray-600 dark:text-gray-300 mt-2">
             Enter your new password below
           </p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            Live secure reset
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-500/20 border border-red-500/40 rounded text-red-400 text-sm">
+          <div className="mb-6 p-3 bg-red-500/20 border border-red-500/40 rounded text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -145,7 +143,7 @@ export default function ResetPasswordPage() {
               disabled={isLoading}
               required
               autoComplete="new-password"
-              className={passwordTouched && password.length < 8 ? 'border-red-500 focus:ring-red-500' : ''}
+              className={`${inputClass} ${passwordTouched && password.length < 8 ? 'border-red-500 focus:ring-red-500' : ''}`}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">At least 8 characters</p>
             {passwordTouched && password.length < 8 && (
@@ -166,7 +164,7 @@ export default function ResetPasswordPage() {
               disabled={isLoading}
               required
               autoComplete="new-password"
-              className={`backdrop-blur-sm bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${passwordConfirmTouched && password !== passwordConfirm ? 'border-red-500 focus:ring-red-500' : ''}`}
+              className={`${inputClass} ${passwordConfirmTouched && password !== passwordConfirm ? 'border-red-500 focus:ring-red-500' : ''}`}
             />
             {passwordConfirmTouched && password !== passwordConfirm && (
               <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
@@ -195,7 +193,7 @@ export default function ResetPasswordPage() {
         </form>
 
         <div className="mt-6 pt-6 border-t">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Remember your password?{' '}
             <Link href="/login" className="text-blue-600 hover:underline font-medium">
               Sign in

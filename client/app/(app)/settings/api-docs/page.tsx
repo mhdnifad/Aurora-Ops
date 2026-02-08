@@ -32,8 +32,6 @@ export default function ApiDocsPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    console.log('Support form submitted:', supportForm);
-    
     setIsSubmitting(false);
     setShowSupportModal(false);
     setSupportForm({ subject: '', email: '', message: '' });
@@ -49,23 +47,29 @@ export default function ApiDocsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          onClick={() => router.back()}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">API Documentation</h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Complete guide to Aurora Ops REST API</p>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="flex items-center gap-2 border-gray-200/70 dark:border-white/10"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">API Documentation</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Complete guide to Aurora Ops REST API</p>
+          </div>
         </div>
+        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Live API status
+        </span>
       </div>
 
       {/* Getting Started */}
-      <Card className="p-6">
+      <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Getting Started</h3>
         <div className="space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
@@ -89,7 +93,7 @@ export default function ApiDocsPage() {
       </Card>
 
       {/* Authentication */}
-      <Card className="p-6">
+      <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Authentication</h3>
         <div className="space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
@@ -102,8 +106,8 @@ export default function ApiDocsPage() {
               <code className="block">Authorization: Bearer YOUR_API_KEY</code>
             </div>
           </div>
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-            <p className="text-yellow-800 text-sm">
+          <div className="bg-yellow-50/80 border border-yellow-200/60 dark:border-yellow-500/20 p-4 rounded-lg">
+            <p className="text-yellow-800 dark:text-yellow-200 text-sm">
               <strong>Security:</strong> Keep your API keys secure. Do not share them in publicly accessible
               areas such as GitHub, client-side code, or screenshots.
             </p>
@@ -112,7 +116,7 @@ export default function ApiDocsPage() {
       </Card>
 
       {/* Projects API */}
-      <Card className="p-6">
+      <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Projects API</h3>
         
         {/* List Projects */}
@@ -358,7 +362,7 @@ export default function ApiDocsPage() {
       </Card>
 
       {/* Error Codes */}
-      <Card className="p-6">
+      <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Error Codes</h3>
         <div className="space-y-3">
           <p className="text-gray-700 dark:text-gray-300 mb-4">
@@ -366,56 +370,56 @@ export default function ApiDocsPage() {
           </p>
           <div className="space-y-2">
             <div className="flex items-start gap-3">
-              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">200</span>
+              <span className="bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-300 px-2 py-1 rounded text-sm font-medium">200</span>
               <div>
                 <p className="font-medium">OK</p>
                 <p className="text-sm text-gray-600">Everything worked as expected</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">201</span>
+              <span className="bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 px-2 py-1 rounded text-sm font-medium">201</span>
               <div>
                 <p className="font-medium">Created</p>
                 <p className="text-sm text-gray-600">Resource created successfully</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-medium">400</span>
+              <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-300 px-2 py-1 rounded text-sm font-medium">400</span>
               <div>
                 <p className="font-medium">Bad Request</p>
                 <p className="text-sm text-gray-600">The request was invalid or cannot be served</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm font-medium">401</span>
+              <span className="bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300 px-2 py-1 rounded text-sm font-medium">401</span>
               <div>
                 <p className="font-medium">Unauthorized</p>
                 <p className="text-sm text-gray-600">Authentication credentials are invalid</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">403</span>
+              <span className="bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300 px-2 py-1 rounded text-sm font-medium">403</span>
               <div>
                 <p className="font-medium">Forbidden</p>
                 <p className="text-sm text-gray-600">You don't have permission to access this resource</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm font-medium">404</span>
+              <span className="bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 px-2 py-1 rounded text-sm font-medium">404</span>
               <div>
                 <p className="font-medium">Not Found</p>
                 <p className="text-sm text-gray-600">The requested resource doesn't exist</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-medium">429</span>
+              <span className="bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-300 px-2 py-1 rounded text-sm font-medium">429</span>
               <div>
                 <p className="font-medium">Too Many Requests</p>
                 <p className="text-sm text-gray-600">You've hit the rate limit</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">500</span>
+              <span className="bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300 px-2 py-1 rounded text-sm font-medium">500</span>
               <div>
                 <p className="font-medium">Internal Server Error</p>
                 <p className="text-sm text-gray-600">Something went wrong on our end</p>
@@ -426,7 +430,7 @@ export default function ApiDocsPage() {
       </Card>
 
       {/* Rate Limiting */}
-      <Card className="p-6">
+      <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Rate Limiting</h3>
         <div className="space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
@@ -442,8 +446,8 @@ X-RateLimit-Reset: 1640000000`}
               </pre>
             </div>
           </div>
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <p className="text-blue-800 text-sm">
+          <div className="bg-blue-50/80 border border-blue-200/60 dark:border-blue-500/20 p-4 rounded-lg">
+            <p className="text-blue-800 dark:text-blue-300 text-sm">
               <strong>Tip:</strong> If you need higher rate limits, please contact our support team to discuss your use case.
             </p>
           </div>
@@ -451,7 +455,7 @@ X-RateLimit-Reset: 1640000000`}
       </Card>
 
       {/* Support */}
-      <Card className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800">
+      <Card className="p-6 bg-gradient-to-r from-blue-50/80 to-purple-50/80 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-xl shadow-md">
         <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Need Help?</h3>
         <p className="text-gray-700 dark:text-gray-300 mb-4">
           If you have questions or need assistance integrating with our API, we're here to help!
@@ -459,7 +463,7 @@ X-RateLimit-Reset: 1640000000`}
         <div className="flex gap-3">
           <Button 
             variant="outline" 
-            className="bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+            className="bg-white/90 dark:bg-white/5 hover:bg-blue-50/80 dark:hover:bg-blue-900/30"
             onClick={() => setShowSupportModal(true)}
           >
             <MessageCircle className="w-4 h-4 mr-2" />
@@ -467,7 +471,7 @@ X-RateLimit-Reset: 1640000000`}
           </Button>
           <Button 
             variant="outline" 
-            className="bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+            className="bg-white/90 dark:bg-white/5 hover:bg-purple-50/80 dark:hover:bg-purple-900/30"
             onClick={handleJoinCommunity}
           >
             <ExternalLink className="w-4 h-4 mr-2" />
@@ -493,6 +497,7 @@ X-RateLimit-Reset: 1640000000`}
               value={supportForm.subject}
               onChange={(e) => setSupportForm({ ...supportForm, subject: e.target.value })}
               placeholder="API Integration Issue"
+              className="bg-white/90 dark:bg-white/5 border-gray-200/70 dark:border-white/10"
             />
           </div>
           
@@ -506,6 +511,7 @@ X-RateLimit-Reset: 1640000000`}
               value={supportForm.email}
               onChange={(e) => setSupportForm({ ...supportForm, email: e.target.value })}
               placeholder="your@email.com"
+              className="bg-white/90 dark:bg-white/5 border-gray-200/70 dark:border-white/10"
             />
           </div>
           
@@ -519,6 +525,7 @@ X-RateLimit-Reset: 1640000000`}
               onChange={(e) => setSupportForm({ ...supportForm, message: e.target.value })}
               placeholder="Describe your issue or question..."
               rows={5}
+              className="bg-white/90 dark:bg-white/5 border-gray-200/70 dark:border-white/10"
             />
           </div>
 

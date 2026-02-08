@@ -1,9 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth-context';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   Building2,
   Users,
@@ -62,10 +60,14 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('settings.title')}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">{t('settings.preferences')}</p>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Manage account + workspace
         </div>
       </div>
 
@@ -75,12 +77,12 @@ export default function SettingsPage() {
           const Icon = section.icon;
           return (
             <Link key={section.href} href={section.href}>
-              <Card className="p-6 hover:shadow-lg transition cursor-pointer h-full">
+              <Card className="p-6 hover:shadow-lg transition cursor-pointer h-full border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <Icon className="w-6 h-6 text-blue-600" />
+                  <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/20 dark:to-indigo-500/20 rounded-xl">
+                    <Icon className="w-6 h-6 text-blue-600 dark:text-blue-300" />
                   </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                  <ArrowRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition" />
                 </div>
                 <h2 className="font-bold text-lg mb-1 text-gray-900 dark:text-gray-100">{section.title}</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">{section.description}</p>

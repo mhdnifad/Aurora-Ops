@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useOrganization } from '@/lib/organization-context';
 import { useGetOrganizations } from '@/lib/hooks';
 import { usePermissions } from '@/lib/permissions';
+import { useAuth } from '@/lib/auth-context';
+import { useSocket } from '@/lib/socket-context';
 import {
   LayoutDashboard,
   FolderOpen,
@@ -26,6 +28,8 @@ export function AppSidebar() {
   const { data: organizations, isLoading } = useGetOrganizations();
   const [showOrgMenu, setShowOrgMenu] = useState(false);
   const permissions = usePermissions();
+  const { userRole, user } = useAuth();
+  const { isConnected } = useSocket();
   const t = useT();
 
   // Define menu items with permission requirements
@@ -60,6 +64,16 @@ export function AppSidebar() {
       icon: Settings,
       requiresPermission: null, // Always visible (personal settings)
     },
+    ...(user?.systemRole === 'admin'
+      ? [
+          {
+            label: 'Admin',
+            href: '/admin',
+            icon: Settings,
+            requiresPermission: null,
+          },
+        ]
+      : []),
   ];
 
   // Filter menu items based on permissions
@@ -129,7 +143,7 @@ export function AppSidebar() {
         <Link href="/organizations/new">
           <Button size="sm" variant="outline" className="w-full mt-3 backdrop-blur-sm">
             <Plus className="w-4 h-4 mr-2" />
-            {t('common.save')}
+            {t('organizations.create')}
           </Button>
         </Link>
       </div>
@@ -162,6 +176,17 @@ export function AppSidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-white/10 backdrop-blur-sm space-y-3">
+        <div className="flex items-center justify-between rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-gray-600 dark:text-gray-300">
+          <span className="font-semibold">Realtime</span>
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                isConnected ? 'bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.18)]' : 'bg-amber-500 animate-pulse'
+              }`}
+            />
+            {isConnected ? 'Live' : 'Syncing'}
+          </span>
+        </div>
         {/* Version Info */}
         <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-white/10">
           <p className="font-semibold">Aurora Ops v1.0</p>

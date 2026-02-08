@@ -1,16 +1,31 @@
 import { v2 as cloudinary } from 'cloudinary';
 import logger from '../utils/logger';
 import { Readable } from 'stream';
+import config from '../config/env';
+
+const PLACEHOLDER_VALUES = new Set([
+  'your_cloud_name',
+  'your-cloud-name',
+  'your_api_key',
+  'your_api_secret',
+]);
+
+const isPlaceholderValue = (value?: string) => {
+  if (!value) {
+    return true;
+  }
+  return PLACEHOLDER_VALUES.has(value.trim().toLowerCase());
+};
 
 class CloudinaryService {
   private enabled: boolean = false;
 
   constructor() {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const cloudName = config.cloudinary?.cloudName;
+    const apiKey = config.cloudinary?.apiKey;
+    const apiSecret = config.cloudinary?.apiSecret;
 
-    if (cloudName && apiKey && apiSecret) {
+    if (cloudName && apiKey && apiSecret && !isPlaceholderValue(cloudName) && !isPlaceholderValue(apiKey) && !isPlaceholderValue(apiSecret)) {
       cloudinary.config({
         cloud_name: cloudName,
         api_key: apiKey,
@@ -41,7 +56,7 @@ class CloudinaryService {
       folder?: string;
       publicId?: string;
       resourceType?: 'image' | 'video' | 'raw' | 'auto';
-      transformation?: any;
+      transformation?: Record<string, unknown>;
     } = {}
   ): Promise<{
     url: string;
@@ -180,7 +195,7 @@ class CloudinaryService {
   /**
    * Delete file from Cloudinary
    */
-  async deleteFile(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'image'): Promise<void> {
+  async deleteFile(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'raw'): Promise<void> {
     if (!this.enabled) {
       throw new Error('Cloudinary service not configured');
     }
@@ -197,7 +212,7 @@ class CloudinaryService {
   /**
    * Get file info
    */
-  async getFileInfo(publicId: string): Promise<any> {
+  async getFileInfo(publicId: string): Promise<unknown> {
     if (!this.enabled) {
       throw new Error('Cloudinary service not configured');
     }

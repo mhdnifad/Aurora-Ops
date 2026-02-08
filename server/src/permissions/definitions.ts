@@ -1,10 +1,10 @@
-import { PERMISSIONS, ROLES } from '../config/constants';
+import { PERMISSIONS, ORG_ROLES } from '../config/constants';
 
 /**
  * Default role permissions mapping
  */
 export const DEFAULT_ROLE_PERMISSIONS = {
-  [ROLES.OWNER]: [
+  [ORG_ROLES.COMPANY_ADMIN]: [
     // Organization
     PERMISSIONS.ORGANIZATION_READ,
     PERMISSIONS.ORGANIZATION_WRITE,
@@ -29,31 +29,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     PERMISSIONS.TASK_ASSIGN,
   ],
 
-  [ROLES.ADMIN]: [
-    // Organization
-    PERMISSIONS.ORGANIZATION_READ,
-    PERMISSIONS.ORGANIZATION_WRITE,
-    
-    // Members
-    PERMISSIONS.MEMBER_READ,
-    PERMISSIONS.MEMBER_INVITE,
-    PERMISSIONS.MEMBER_REMOVE,
-    PERMISSIONS.MEMBER_UPDATE_ROLE,
-    
-    // Projects
-    PERMISSIONS.PROJECT_READ,
-    PERMISSIONS.PROJECT_WRITE,
-    PERMISSIONS.PROJECT_DELETE,
-    PERMISSIONS.PROJECT_ASSIGN,
-    
-    // Tasks
-    PERMISSIONS.TASK_READ,
-    PERMISSIONS.TASK_WRITE,
-    PERMISSIONS.TASK_DELETE,
-    PERMISSIONS.TASK_ASSIGN,
-  ],
-
-  [ROLES.MANAGER]: [
+  [ORG_ROLES.MANAGER]: [
     // Organization
     PERMISSIONS.ORGANIZATION_READ,
     
@@ -68,11 +44,10 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     // Tasks
     PERMISSIONS.TASK_READ,
     PERMISSIONS.TASK_WRITE,
-    PERMISSIONS.TASK_DELETE,
     PERMISSIONS.TASK_ASSIGN,
   ],
 
-  [ROLES.MEMBER]: [
+  [ORG_ROLES.EMPLOYEE]: [
     // Organization
     PERMISSIONS.ORGANIZATION_READ,
     
@@ -87,7 +62,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     PERMISSIONS.TASK_WRITE,
   ],
 
-  [ROLES.GUEST]: [
+  [ORG_ROLES.CLIENT]: [
     // Organization
     PERMISSIONS.ORGANIZATION_READ,
     
@@ -100,6 +75,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     // Tasks
     PERMISSIONS.TASK_READ,
   ],
+
+  // Legacy roles are normalized to the above roles
 };
 
 /**

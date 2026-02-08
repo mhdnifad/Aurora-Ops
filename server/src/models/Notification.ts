@@ -8,7 +8,7 @@ export interface INotification extends Document {
   title: string;
   message: string;
   link?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   isRead: boolean;
   readAt?: Date;
   createdAt: Date;

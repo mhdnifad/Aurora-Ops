@@ -1,12 +1,11 @@
 
 
-console.log('STARTUP');
-
 import App from './app';
 import config from './config/env';
 import database from './config/database';
 import redis from './config/redis';
 import logger from './utils/logger';
+import SocketManager from './socket';
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error: Error) => {
@@ -23,7 +22,7 @@ const startServer = async () => {
     // Connect to Redis (optional)
     try {
       await redis.connect();
-    } catch (redisError) {
+    } catch {
       logger.warn('⚠️  Redis connection failed. Server will continue without Redis caching.');
     }
 
@@ -41,17 +40,15 @@ const startServer = async () => {
     }
 
     // Initialize Socket.IO
-    io.on('connection', (socket) => {
-      logger.info(`Client connected: ${socket.id}`);
+    new SocketManager(io);
 
-      socket.on('disconnect', () => {
-        logger.info(`Client disconnected: ${socket.id}`);
-      });
-    });
+    logger.info('About to call server.listen()...');
+    logger.info(`Server type: ${typeof server}, listening: ${server.listening}`);
 
     // Start server
-    const httpServer = server.listen(config.port, '0.0.0.0', () => {
-      logger.info(`Server listening on port ${config.port}`);
+    const httpServer = server.listen(config.port, () => {
+      logger.info(`Server listening callback fired on port ${config.port}`);
+      logger.info(`httpServer.listening: ${httpServer.listening}, address: ${JSON.stringify(httpServer.address())}`);
       const redisStatus = redis.getIsEnabled() ? '✅  Connected' : '⚠️  Disabled';
       logger.info(`
 ╔═══════════════════════════════════════════════════════════╗
@@ -73,7 +70,7 @@ const startServer = async () => {
     });
 
     // Handle server errors
-    httpServer.on('error', (error: any) => {
+    httpServer.on('error', (error: { code?: string; message?: string }) => {
       logger.error('Server error event:', error);
       if (error.code === 'EADDRINUSE') {
         logger.error(`Port ${config.port} is already in use`);
@@ -82,6 +79,7 @@ const startServer = async () => {
     });
 
     logger.info('Event handlers registered, server setup complete');
+    logger.info(`After listen call - httpServer.listening: ${httpServer.listening}`);
 
     // Graceful shutdown
     const gracefulShutdown = async (signal: string) => {
@@ -94,8 +92,8 @@ const startServer = async () => {
         await database.disconnect();
         try {
           await redis.disconnect();
-        } catch (redisError) {
-          logger.warn('Error disconnecting Redis:', redisError);
+        } catch (err) {
+          logger.warn('Error disconnecting Redis:', err);
         }
 
         logger.info('Database connections closed');
@@ -115,7 +113,7 @@ const startServer = async () => {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason: any) => {
+    process.on('unhandledRejection', (reason: unknown) => {
       logger.error('UNHANDLED REJECTION! Shutting down...', reason);
       server.close(() => {
         process.exit(1);

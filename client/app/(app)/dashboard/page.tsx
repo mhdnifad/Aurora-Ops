@@ -1,11 +1,15 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { useGetMyTasks, useGetProjects, useGetOrganizations } from '@/lib/hooks';
+import { useGetMyTasks, useGetProjects } from '@/lib/hooks';
+import { useRealtimeProjects, useRealtimeStats, useRealtimeTasks } from '@/lib/socket-hooks-enhanced';
+import { useSocket } from '@/lib/socket-context';
+import { useOrganization } from '@/lib/organization-context';
 import { useT } from '@/lib/useT';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { FloatingLinesSurface } from '@/components/ui/floating-lines-surface';
 import {
   CheckSquare,
   FolderOpen,
@@ -19,36 +23,60 @@ export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { data: tasksData, isLoading: tasksLoading } = useGetMyTasks(1, 10);
   const { data: projectsData, isLoading: projectsLoading } = useGetProjects(1, 10);
-  const { data: orgsData } = useGetOrganizations(1, 1);
+  const { isConnected } = useSocket();
+  const { currentOrganization } = useOrganization();
+  const realtimeStats = useRealtimeStats();
+  const realtimeTasks = useRealtimeTasks();
+  const realtimeProjects = useRealtimeProjects();
   const t = useT();
 
   const taskArray = Array.isArray(tasksData) ? tasksData : (tasksData as any)?.tasks || [];
   const projects = Array.isArray(projectsData) ? projectsData : (projectsData as any)?.projects || [];
+  const liveTasks = Array.isArray(realtimeTasks) && realtimeTasks.length > 0 ? realtimeTasks : taskArray;
+  const liveProjects = Array.isArray(realtimeProjects) && realtimeProjects.length > 0 ? realtimeProjects : projects;
 
   const isLoading = authLoading || tasksLoading || projectsLoading;
 
   // Calculate metrics
-  const totalTasks = taskArray.length;
-  const completedTasks = taskArray.filter((t: any) => t.status === 'done').length;
-  const inProgressTasks = taskArray.filter((t: any) => t.status === 'in_progress' || t.status === 'in-progress').length;
+  const totalTasks = typeof realtimeStats?.totalTasks === 'number' ? realtimeStats.totalTasks : liveTasks.length;
+  const completedTasks = typeof realtimeStats?.completedTasks === 'number'
+    ? realtimeStats.completedTasks
+    : liveTasks.filter((t: any) => t.status === 'done').length;
+  const inProgressTasks = typeof realtimeStats?.inProgressTasks === 'number'
+    ? realtimeStats.inProgressTasks
+    : liveTasks.filter((t: any) => t.status === 'in_progress' || t.status === 'in-progress').length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const realtimeLabel = isConnected ? 'Live updates' : currentOrganization ? 'Connecting' : 'Paused';
 
   return (
     <div className="space-y-8 pb-12 animate-fadeIn">
       {/* Header with gradient text */}
-      <div className="space-y-3">
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-          {t('dashboard.welcome')}, {user?.firstName}! 👋
-        </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-300">
-          {t('dashboard.overview')}
-        </p>
+      <div className="relative overflow-hidden rounded-3xl border border-gray-200/70 dark:border-white/10 bg-gradient-to-r from-white via-sky-50/60 to-emerald-50/40 dark:from-gray-900/80 dark:via-slate-900/60 dark:to-slate-900/40 p-8 shadow-lg">
+        <FloatingLinesSurface className="opacity-20" />
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              {t('dashboard.welcome')}, {user?.firstName}! 👋
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              {t('dashboard.overview')}
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-gray-200/70 dark:border-white/10 bg-white/70 dark:bg-white/10 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 shadow-sm">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isConnected ? 'bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.2)]' : 'bg-amber-500 animate-pulse'
+              }`}
+            />
+            {realtimeLabel}
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards with glassmorphism */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Tasks */}
-        <Card className="p-6 group hover:shadow-2xl">
+        <Card className="p-6 group hover:shadow-2xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">{t('tasks.title')}</p>
@@ -66,7 +94,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Completed */}
-        <Card className="p-6 group hover:shadow-2xl">
+        <Card className="p-6 group hover:shadow-2xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">{t('tasks.completed')}</p>
@@ -84,12 +112,12 @@ export default function DashboardPage() {
         </Card>
 
         {/* Projects */}
-        <Card className="p-6 group hover:shadow-2xl">
+        <Card className="p-6 group hover:shadow-2xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">{t('projects.title')}</p>
               <p className="text-4xl font-bold text-gray-900 dark:text-white mt-3">
-                {isLoading ? '—' : projects.length}
+                {isLoading ? '—' : liveProjects.length}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
                 {t('nav.organizations')}
@@ -102,17 +130,24 @@ export default function DashboardPage() {
         </Card>
 
         {/* Quick Action */}
-        <Card className="p-6 group hover:shadow-2xl">
+        <Card className="p-6 group hover:shadow-2xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold uppercase tracking-wide">{t('common.edit')}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
                 {t('tasks.create')} / {t('projects.create')}
               </p>
-              <div className="flex gap-2 mt-4">
+              <div className="flex flex-wrap gap-2 mt-4">
                 <Link href="/tasks/new">
                   <Button size="sm" className="backdrop-blur-sm">
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 mr-1" />
+                    {t('tasks.create')}
+                  </Button>
+                </Link>
+                <Link href="/projects/new">
+                  <Button size="sm" variant="outline" className="backdrop-blur-sm">
+                    <Plus className="w-4 h-4 mr-1" />
+                    {t('projects.create')}
                   </Button>
                 </Link>
               </div>
@@ -127,7 +162,13 @@ export default function DashboardPage() {
       {/* Recent Tasks */}
       <div className="animate-fadeIn" style={{ animationDelay: '100ms' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{t('tasks.title')}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{t('tasks.title')}</h2>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Realtime
+            </span>
+          </div>
           <Link href="/tasks">
             <Button variant="outline" size="sm" className="group">
               View All
@@ -136,10 +177,14 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl">
           {isLoading ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading tasks...</div>
-          ) : taskArray.length === 0 ? (
+            <div className="p-6 space-y-3">
+              {[...Array(3)].map((_, idx) => (
+                <div key={idx} className="h-10 rounded-xl bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+              ))}
+            </div>
+          ) : liveTasks.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 dark:text-gray-400 mb-4">{t('tasks.empty')}</p>
               <Link href="/tasks/new">
@@ -150,8 +195,8 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="divide-y divide-white/10">
-              {taskArray.slice(0, 5).map((task: any) => (
+            <div className="divide-y divide-white/20 dark:divide-white/10">
+              {liveTasks.slice(0, 5).map((task: any) => (
                 <div key={task._id} className="p-4 hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-300 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -180,7 +225,13 @@ export default function DashboardPage() {
       </div>
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">{t('projects.title')}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{t('projects.title')}</h2>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Realtime
+            </span>
+          </div>
           <Link href="/projects">
             <Button variant="outline" size="sm">
               View All
@@ -189,12 +240,16 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <Card className="border border-gray-200">
+        <Card className="border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl">
           {isLoading ? (
-            <div className="p-8 text-center text-gray-500">Loading projects...</div>
-          ) : projects.length === 0 ? (
+            <div className="p-6 space-y-3">
+              {[...Array(3)].map((_, idx) => (
+                <div key={idx} className="h-10 rounded-xl bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+              ))}
+            </div>
+          ) : liveProjects.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-gray-500 mb-4">{t('projects.empty')}</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">{t('projects.empty')}</p>
               <Link href="/projects/new">
                 <Button className="bg-blue-600 text-white hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
@@ -203,18 +258,18 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="divide-y">
-              {projects.slice(0, 5).map((project: any) => (
+            <div className="divide-y divide-white/20 dark:divide-white/10">
+              {liveProjects.slice(0, 5).map((project: any) => (
                 <Link key={project._id} href={`/projects/${project._id}`}>
-                  <div className="p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="p-4 hover:bg-white/10 dark:hover:bg-white/5 transition-colors cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{project.name}</h3>
+                        <h3 className="font-medium text-gray-900 dark:text-white">{project.name}</h3>
                         {project.description && (
-                          <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{project.description}</p>
                         )}
                       </div>
-                      <ArrowRight className="w-5 h-5 text-gray-400" />
+                      <ArrowRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
                   </div>
                 </Link>

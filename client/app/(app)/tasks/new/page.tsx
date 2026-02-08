@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useGetProjects, useCreateTask } from '@/lib/hooks';
 import { useOrganization } from '@/lib/organization-context';
 import { useAuth } from '@/lib/auth-context';
-import { ArrowLeft, Loader, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader, AlertCircle, Sparkles, Calendar, Flag, Clipboard, User } from 'lucide-react';
 
 function NewTaskPage() {
   const router = useRouter();
@@ -40,16 +40,22 @@ function NewTaskPage() {
 
   if (!orgLoading && (!currentOrganization || organizations.length === 0)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h2 className="text-2xl font-bold mb-4">No Organization Found</h2>
-        <p className="text-gray-600 mb-6">
-          You must create or join an organization to create tasks.
-        </p>
-        <a href="/organizations/new">
-          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-            Create Organization
-          </Button>
-        </a>
+      <div className="relative overflow-hidden rounded-3xl border border-white/20 dark:border-white/10 bg-gradient-to-br from-white via-blue-50/40 to-indigo-50/40 dark:from-gray-900/80 dark:via-slate-900/60 dark:to-indigo-950/40 p-10 shadow-xl">
+        <div className="absolute -top-16 -right-12 h-40 w-40 rounded-full bg-blue-500/10 blur-2xl" />
+        <div className="absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-indigo-500/10 blur-2xl" />
+        <div className="relative text-center">
+          <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full bg-blue-600/10 px-4 py-1 text-xs font-semibold text-blue-700">
+            <Sparkles className="h-4 w-4" />
+            Workspace setup required
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Create an organization first</h2>
+          <p className="mt-3 text-gray-600 dark:text-gray-400">Tasks belong to an organization. Create one to unlock projects, tasks, and realtime updates.</p>
+          <a href="/organizations/new" className="mt-6 inline-block">
+            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+              Create Organization
+            </Button>
+          </a>
+        </div>
       </div>
     );
   }
@@ -84,73 +90,107 @@ function NewTaskPage() {
   };
 
   return (
-    <div>
-      <Card>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Project */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Project</label>
-              <select
-                name="projectId"
-                value={formData.projectId}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                disabled={isPending || projectsLoading}
-                required
-              >
-                {projectsList.map((project: any) => (
-                  <option key={project._id} value={project._id}>{project.name}</option>
-                ))}
-              </select>
+    <div className="relative space-y-8">
+      <div className="absolute -top-24 right-6 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
+      <div className="absolute top-40 -left-10 h-44 w-44 rounded-full bg-indigo-500/10 blur-3xl" />
+
+      <div className="relative flex flex-col gap-4 rounded-3xl border border-white/20 dark:border-white/10 bg-gradient-to-r from-white via-blue-50/40 to-indigo-50/40 dark:from-gray-900/80 dark:via-slate-900/60 dark:to-indigo-950/40 p-8 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              <Sparkles className="h-4 w-4" />
+              New task workspace
             </div>
-            {/* Assignee */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Assignee</label>
-              <Input
-                type="text"
-                name="assigneeId"
-                value={formData.assigneeId}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
-                disabled={isPending}
-                required
-              />
-            </div>
-            {/* Title */}
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create a task that ships</h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Tie every task to a project, set priority, and track it in realtime.</p>
+          </div>
+          <Link href="/tasks">
+            <Button variant="outline" className="border-gray-200/70 dark:border-white/10 bg-white/80 dark:bg-white/10">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Tasks
+            </Button>
+          </Link>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/80 dark:bg-white/10 px-3 py-1">
+            <Clipboard className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+            Organization: <span className="font-semibold text-gray-900 dark:text-white">{currentOrganization?.name}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/80 dark:bg-white/10 px-3 py-1">
+            <User className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+            Assigned to: <span className="font-semibold text-gray-900 dark:text-white">{user?.firstName} {user?.lastName}</span>
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="relative grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_0.9fr]">
+        <Card className="p-8 shadow-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Title</label>
               <Input
                 type="text"
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
+                className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 bg-white/90 dark:bg-white/5 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
                 disabled={isPending}
+                placeholder="e.g. Finalize onboarding flow"
                 required
               />
             </div>
-            {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
               <Textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
+                className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 bg-white/90 dark:bg-white/5 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
                 disabled={isPending}
-                rows={3}
+                rows={5}
+                placeholder="Add context, links, acceptance criteria, and anything the team needs."
                 required
               />
             </div>
-            {/* Priority */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Priority</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Project</label>
+              <select
+                name="projectId"
+                value={formData.projectId}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 dark:bg-white/5"
+                disabled={isPending || projectsLoading || projectsList.length === 0}
+                required
+              >
+                {projectsList.length === 0 ? (
+                  <option value="">No projects available</option>
+                ) : (
+                  projectsList.map((project: any) => (
+                    <option key={project._id} value={project._id}>{project.name}</option>
+                  ))
+                )}
+              </select>
+              {projectsError && (
+                <p className="mt-2 text-xs text-red-600">Unable to load projects. Refresh and try again.</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Assignee</label>
+              <Input
+                type="text"
+                value={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Unassigned'}
+                className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 bg-gray-50/80 dark:bg-white/5 text-gray-700 dark:text-gray-200 rounded-lg"
+                disabled
+              />
+              <input type="hidden" name="assigneeId" value={formData.assigneeId} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Priority</label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 dark:bg-white/5"
                 disabled={isPending}
                 required
               >
@@ -160,14 +200,13 @@ function NewTaskPage() {
                 <option value="urgent">Urgent</option>
               </select>
             </div>
-            {/* Status */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status</label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 dark:bg-white/5"
                 disabled={isPending}
                 required
               >
@@ -177,33 +216,32 @@ function NewTaskPage() {
                 <option value="done">Done</option>
               </select>
             </div>
-            {/* Due Date */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Due Date</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Due Date</label>
               <Input
                 type="date"
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
+                className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 bg-white/90 dark:bg-white/5 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
                 disabled={isPending}
               />
             </div>
           </div>
-          {/* Error Message */}
+
           {error && (
-            <div className="flex items-center gap-2 text-red-600 mt-4">
+            <div className="mt-6 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-red-700 dark:text-red-300">
               <AlertCircle className="w-5 h-5" />
               <span>{error}</span>
             </div>
           )}
-          {/* Actions */}
-          <div className="flex gap-4 pt-6 border-t border-gray-200">
+
+          <div className="mt-8 flex flex-wrap gap-4 border-t border-gray-200/70 dark:border-white/10 pt-6">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.push('/tasks')}
-              className="border-gray-300 hover:bg-gray-100 px-6"
+              className="border-gray-200/70 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/5 px-6"
               disabled={isPending}
             >
               Cancel
@@ -211,7 +249,7 @@ function NewTaskPage() {
             <Button
               type="submit"
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 shadow-lg"
-              disabled={isPending}
+              disabled={isPending || projectsList.length === 0}
             >
               {isPending ? (
                 <>
@@ -223,8 +261,44 @@ function NewTaskPage() {
               )}
             </Button>
           </div>
-        </form>
-      </Card>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="p-6 shadow-lg border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <Flag className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+              Task readiness checklist
+            </div>
+            <ul className="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-400">
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+                Clear title with one actionable outcome.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500" />
+                Description includes acceptance criteria.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
+                Priority aligned with sprint goals.
+              </li>
+            </ul>
+          </Card>
+
+          <Card className="p-6 shadow-lg border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+              Smart scheduling
+            </div>
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+              Add a due date to surface this task in dashboards, alerts, and realtime feeds.
+            </p>
+            <div className="mt-4 rounded-xl border border-indigo-100/60 dark:border-indigo-500/20 bg-indigo-50/80 dark:bg-indigo-500/10 px-4 py-3 text-xs text-indigo-700 dark:text-indigo-300">
+              Tip: Set a due date if the task is tied to a client milestone.
+            </div>
+          </Card>
+        </div>
+      </form>
     </div>
   );
 }

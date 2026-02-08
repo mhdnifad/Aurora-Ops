@@ -12,6 +12,8 @@ import { apiClient } from '@/lib/api-client';
 export default function NotificationsSettingsPage() {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
+  const rowClass = 'flex items-center justify-between gap-6 rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 p-4 shadow-sm';
+  const toggleClass = 'h-5 w-5 rounded border-gray-300 dark:border-white/20 text-blue-600 focus:ring-blue-200';
   const [preferences, setPreferences] = useState({
     emailOnTaskAssigned: true,
     emailOnTaskComment: true,
@@ -51,30 +53,36 @@ export default function NotificationsSettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-3xl space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/settings">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Notification settings</h1>
-          <p className="text-gray-600 mt-1">Choose how you receive notifications</p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/settings">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Notification settings</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Choose how you receive notifications</p>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Realtime alerts
         </div>
       </div>
 
       {/* Email Notifications */}
-      <Card className="p-8">
+      <Card className="p-8 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h2 className="text-lg font-bold mb-6">Email notifications</h2>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div className={rowClass}>
             <div>
-              <p className="font-medium">Task assigned to you</p>
-              <p className="text-sm text-gray-600">
+              <p className="font-medium text-gray-900 dark:text-white">Task assigned to you</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Get notified when a task is assigned to you
               </p>
             </div>
@@ -82,14 +90,14 @@ export default function NotificationsSettingsPage() {
               type="checkbox"
               checked={preferences.emailOnTaskAssigned}
               onChange={() => handleChange('emailOnTaskAssigned')}
-              className="rounded w-5 h-5"
+              className={toggleClass}
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div className={rowClass}>
             <div>
-              <p className="font-medium">New comments on tasks</p>
-              <p className="text-sm text-gray-600">
+              <p className="font-medium text-gray-900 dark:text-white">New comments on tasks</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Get notified when someone comments on your tasks
               </p>
             </div>
@@ -97,14 +105,14 @@ export default function NotificationsSettingsPage() {
               type="checkbox"
               checked={preferences.emailOnTaskComment}
               onChange={() => handleChange('emailOnTaskComment')}
-              className="rounded w-5 h-5"
+              className={toggleClass}
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div className={rowClass}>
             <div>
-              <p className="font-medium">Project invitations</p>
-              <p className="text-sm text-gray-600">
+              <p className="font-medium text-gray-900 dark:text-white">Project invitations</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Get notified when you're invited to projects
               </p>
             </div>
@@ -112,14 +120,14 @@ export default function NotificationsSettingsPage() {
               type="checkbox"
               checked={preferences.emailOnProjectInvite}
               onChange={() => handleChange('emailOnProjectInvite')}
-              className="rounded w-5 h-5"
+              className={toggleClass}
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div className={rowClass}>
             <div>
-              <p className="font-medium">Member joined organization</p>
-              <p className="text-sm text-gray-600">
+              <p className="font-medium text-gray-900 dark:text-white">Member joined organization</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Get notified when a new member joins your organization
               </p>
             </div>
@@ -127,14 +135,14 @@ export default function NotificationsSettingsPage() {
               type="checkbox"
               checked={preferences.emailOnMemberJoined}
               onChange={() => handleChange('emailOnMemberJoined')}
-              className="rounded w-5 h-5"
+              className={toggleClass}
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div className={rowClass}>
             <div>
-              <p className="font-medium">Weekly digest</p>
-              <p className="text-sm text-gray-600">
+              <p className="font-medium text-gray-900 dark:text-white">Weekly digest</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Receive a weekly summary of your team's activity
               </p>
             </div>
@@ -142,20 +150,20 @@ export default function NotificationsSettingsPage() {
               type="checkbox"
               checked={preferences.emailDigest}
               onChange={() => handleChange('emailDigest')}
-              className="rounded w-5 h-5"
+              className={toggleClass}
             />
           </div>
         </div>
       </Card>
 
       {/* Push Notifications */}
-      <Card className="p-8">
+      <Card className="p-8 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h2 className="text-lg font-bold mb-6">Push notifications</h2>
 
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded">
+        <div className={rowClass}>
           <div>
-            <p className="font-medium">Enable push notifications</p>
-            <p className="text-sm text-gray-600">
+            <p className="font-medium text-gray-900 dark:text-white">Enable push notifications</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Receive push notifications on your browser and devices
             </p>
           </div>
@@ -163,7 +171,7 @@ export default function NotificationsSettingsPage() {
             type="checkbox"
             checked={preferences.pushNotifications}
             onChange={() => handleChange('pushNotifications')}
-            className="rounded w-5 h-5"
+            className={toggleClass}
           />
         </div>
       </Card>
@@ -173,7 +181,7 @@ export default function NotificationsSettingsPage() {
         <Button
           onClick={handleSave}
           disabled={isLoading}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
         >
           {isLoading ? (
             <>

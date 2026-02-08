@@ -24,16 +24,28 @@ export function RealtimeIndicators() {
       setNotificationCount((prev) => prev + 1);
     };
 
-    socket.on('notification', handleNotification);
-    socket.on('task_updated', () => handleNotification({ message: 'Task updated' }));
-    socket.on('project_updated', () => handleNotification({ message: 'Project updated' }));
-    socket.on('member_joined', (data) => handleNotification({ message: `${data.userName} joined` }));
+    socket.on('notification:new', handleNotification);
+    socket.on('notifications:load', (payload: { notifications?: any[] }) => {
+      if (Array.isArray(payload?.notifications)) {
+        const initial = payload.notifications.map((item) => ({
+          id: item._id || Math.random().toString(36),
+          message: item.message || item.title || 'New update',
+          timestamp: new Date(item.createdAt || Date.now()),
+        }));
+        setNotifications(initial.slice(0, 5));
+        setNotificationCount(initial.length);
+      }
+    });
+    socket.on('task:updated', () => handleNotification({ message: 'Task updated' }));
+    socket.on('project:updated', () => handleNotification({ message: 'Project updated' }));
+    socket.on('user:joined', () => handleNotification({ message: 'A user joined the project' }));
 
     return () => {
-      socket.off('notification', handleNotification);
-      socket.off('task_updated', handleNotification);
-      socket.off('project_updated', handleNotification);
-      socket.off('member_joined', handleNotification);
+      socket.off('notification:new', handleNotification);
+      socket.off('notifications:load');
+      socket.off('task:updated', handleNotification);
+      socket.off('project:updated', handleNotification);
+      socket.off('user:joined', handleNotification);
     };
   }, [socket]);
 

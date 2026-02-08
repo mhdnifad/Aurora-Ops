@@ -7,41 +7,41 @@ import Membership from '../models/Membership';
  * Extract organization ID from request (params, query, headers, body)
  */
 const getOrganizationId = (req: AuthRequest): string | null => {
-  // Prioritize explicit organizationId param for organization routes
-  if (req.params.organizationId) {
-    const orgId = req.params.organizationId;
-    if (Array.isArray(orgId)) {
-      return orgId[0] || null;
+  try {
+    // Prioritize explicit organizationId param for organization routes
+    if (req.params && req.params.organizationId) {
+      const orgId = req.params.organizationId;
+      if (Array.isArray(orgId)) {
+        return orgId[0] || null;
+      }
+      return orgId;
     }
-    return orgId;
-  }
 
-  // Check for explicit organizationId in query or body
-  if (req.query.organizationId as string) {
-    return req.query.organizationId as string;
-  }
-  if (req.body.organizationId) {
-    return req.body.organizationId;
-  }
+    // Check for explicit organizationId in query or body
+    if (req.query && (req.query.organizationId as string)) {
+      return req.query.organizationId as string;
+    }
+    if (req.body && req.body.organizationId) {
+      return req.body.organizationId;
+    }
 
-  // Most reliable: get from client header (sent with every request in browser context)
-  const headerOrgId = req.headers['x-organization-id'] as string;
-  if (headerOrgId) {
-    return headerOrgId;
+    // Most reliable: get from client header (sent with every request in browser context)
+    if (req.headers) {
+      const headerOrgId = req.headers['x-organization-id'] as string;
+      if (headerOrgId) {
+        return headerOrgId;
+      }
+    }
+
+    // Fallback: use user's default organization if already set
+    if (req.user && req.user.organizationId) {
+      return req.user.organizationId;
+    }
+
+    return null;
+  } catch {
+    return null;
   }
-
-  // Fallback: use user's default organization if already set
-  if (req.user?.organizationId) {
-    return req.user.organizationId;
-  }
-
-  // Note: req.params.id is NOT a reliable source for organizationId because:
-  // - For /projects/:id, it's the PROJECT ID
-  // - For /organizations/:id, it's the ORGANIZATION ID
-  // - For /tasks/:id, it's the TASK ID
-  // So we don't use it here
-
-  return null;
 };
 
 /**
@@ -59,10 +59,19 @@ export const tenantMiddleware = async (
 
     let organizationId = getOrganizationId(req);
 
+    if (req.user.systemRole === 'admin') {
+      if (!organizationId) {
+        throw new AuthorizationError('Organization ID is required for admin context');
+      }
+      req.user.organizationId = organizationId;
+      req.organizationId = organizationId;
+      return next();
+    }
+
     // If no organization ID is provided, try to get user's first active organization
     if (!organizationId) {
       const membership = await Membership.findOne({
-        userId: req.user.userId,
+        userId: req.user._id,
         status: 'active',
       }).sort({ createdAt: 1 }); // Get the first/oldest membership
 
@@ -75,7 +84,7 @@ export const tenantMiddleware = async (
 
     // Check if user is a member of the organization
     const membership = await Membership.findOne({
-      userId: req.user.userId,
+      userId: req.user._id,
       organizationId,
       status: 'active',
     });
@@ -109,3 +118,6 @@ export const getUserMembership = async (
 
   return membership;
 };
+
+
+

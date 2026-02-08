@@ -1,6 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth.middleware';
 import { AuthorizationError } from '../utils/errors';
+import { DEFAULT_ROLE_PERMISSIONS, roleHasAnyPermission } from '../permissions/definitions';
+import { normalizeOrgRole } from '../utils/roles';
+import { PERMISSION_ALIASES } from '../config/constants';
 import { getUserMembership } from './tenant.middleware';
 
 /**
@@ -13,12 +16,16 @@ export const requirePermission = (...permissions: string[]) => {
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (req.user?.systemRole === 'admin') {
+        return next();
+      }
+
       if (!req.user || !req.user.organizationId) {
         throw new AuthorizationError('Authentication and organization context required');
       }
 
       const membership = await getUserMembership(
-        req.user.userId,
+        req.user._id,
         req.user.organizationId
       );
 
@@ -26,8 +33,19 @@ export const requirePermission = (...permissions: string[]) => {
         throw new AuthorizationError('Access denied');
       }
 
-      // Check if user role is admin, owner, or member (members can perform general tasks)
-      const hasPermission = ['admin', 'owner', 'member'].includes(membership.role);
+      const normalizedRole = normalizeOrgRole(membership.role);
+      if (!normalizedRole) {
+        throw new AuthorizationError('Invalid role');
+      }
+
+      const rolePermissions = DEFAULT_ROLE_PERMISSIONS[normalizedRole] || [];
+      const resolvedPermissions = permissions.flatMap((permission) =>
+        PERMISSION_ALIASES[permission] ? PERMISSION_ALIASES[permission] : [permission]
+      );
+
+      const hasPermission =
+        resolvedPermissions.length === 0 ||
+        roleHasAnyPermission(rolePermissions, resolvedPermissions);
 
       if (!hasPermission) {
         throw new AuthorizationError(
@@ -52,12 +70,16 @@ export const requireRole = (...roles: string[]) => {
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (req.user?.systemRole === 'admin') {
+        return next();
+      }
+
       if (!req.user || !req.user.organizationId) {
         throw new AuthorizationError('Authentication and organization context required');
       }
 
       const membership = await getUserMembership(
-        req.user.userId,
+        req.user._id,
         req.user.organizationId
       );
 
@@ -65,7 +87,11 @@ export const requireRole = (...roles: string[]) => {
         throw new AuthorizationError('Access denied');
       }
 
-      const hasRole = roles.includes(membership.role);
+      const normalizedRole = normalizeOrgRole(membership.role);
+      const normalizedRequiredRoles = roles
+        .map((role) => normalizeOrgRole(role) || role)
+        .filter(Boolean);
+      const hasRole = normalizedRole ? normalizedRequiredRoles.includes(normalizedRole) : false;
 
       if (!hasRole) {
         throw new AuthorizationError(
@@ -83,12 +109,13 @@ export const requireRole = (...roles: string[]) => {
 /**
  * Check if user is organization owner
  */
-export const requireOwner = requireRole('owner');
+export const requireOwner = requireRole('company_admin');
 
 /**
  * Check if user is admin or owner
  */
-export const requireAdmin = requireRole('owner', 'admin');
+export const requireAdmin = requireRole('company_admin');
 
 // Backwards-compatible alias
 export const rbacMiddleware = requirePermission;
+

@@ -19,11 +19,12 @@ router.post(
     const { subject, message, company } = req.body || {};
 
     if (!subject || !message) {
-      return res.status(400).json({ success: false, message: 'Subject and message are required' });
+      res.status(400).json({ success: false, message: 'Subject and message are required' });
+      return;
     }
 
     const fromEmail = req.user?.email || 'guest@auroraops.local';
-    const name = req.user ? `${(req as any).user.firstName || ''} ${(req as any).user.lastName || ''}`.trim() : 'Guest User';
+    const name = req.user ? `${(req as { user: { firstName?: string; lastName?: string } }).user.firstName || ''} ${(req as { user: { firstName?: string; lastName?: string } }).user.lastName || ''}`.trim() : 'Guest User';
 
     const html = `
       <h2>Contact Sales Inquiry</h2>
@@ -42,7 +43,7 @@ router.post(
           html
         );
         logger.info(`Sales inquiry sent from ${fromEmail}`);
-      } catch (err) {
+      } catch {
         logger.warn('Failed to send sales email, logging only');
       }
     } else {
@@ -50,7 +51,7 @@ router.post(
       logger.info(html);
     }
 
-    return res.json({ success: true, message: 'Your message has been sent' });
+    res.json({ success: true, message: 'Your message has been sent' });
   })
 );
 

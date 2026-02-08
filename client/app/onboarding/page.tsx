@@ -20,6 +20,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { setCurrentOrganization } = useOrganization();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const inputClass = 'h-12 text-base backdrop-blur-sm bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400';
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -84,6 +85,10 @@ export default function OnboardingPage() {
             Welcome to Aurora Ops
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg">Let's set up your workspace in just a few steps</p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Realtime-ready setup
+          </div>
         </div>
 
         {/* Progress Steps */}
@@ -145,7 +150,7 @@ export default function OnboardingPage() {
                     placeholder="Acme Corporation"
                     disabled={isLoading}
                     autoComplete="off"
-                    className="pl-11 h-12 text-base backdrop-blur-sm bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                    className={`pl-11 ${inputClass}`}
                     autoFocus
                   />
                 </div>
@@ -167,14 +172,18 @@ export default function OnboardingPage() {
                     placeholder="What does your organization do?"
                     disabled={isLoading}
                     autoComplete="off"
-                    className="h-12 text-base backdrop-blur-sm bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                    className={inputClass}
                   />
                 </div>
               </div>
             </div>
 
+            <div className="rounded-xl border border-white/20 bg-white/40 dark:bg-white/5 px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+              You can rename your workspace later. Realtime updates will start once you create your first project.
+            </div>
+
             {error && (
-              <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-r text-red-700 text-sm flex items-start gap-2">
+              <div className="p-4 bg-red-500/10 border-l-4 border-red-500 rounded-r text-red-700 dark:text-red-300 text-sm flex items-start gap-2">
                 <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
@@ -214,26 +223,26 @@ export default function OnboardingPage() {
             </div>
             
             <div className="space-y-3">
-              <h2 className="text-3xl font-bold text-gray-900">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
                 You're all set! 🎉
               </h2>
-              <p className="text-lg text-gray-600">
-                Your organization <span className="font-semibold text-blue-600">{orgName}</span> has been created
+              <p className="text-lg text-gray-600 dark:text-gray-300">
+                Your organization <span className="font-semibold text-blue-600 dark:text-blue-400">{orgName}</span> has been created
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto pt-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <Building2 className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-gray-700">Create Projects</p>
+              <div className="p-4 bg-blue-50/80 dark:bg-blue-500/10 rounded-lg">
+                <Building2 className="w-8 h-8 text-blue-600 dark:text-blue-300 mx-auto mb-2" />
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Create Projects</p>
               </div>
-              <div className="p-4 bg-indigo-50 rounded-lg">
-                <Users className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-gray-700">Invite Team</p>
+              <div className="p-4 bg-indigo-50/80 dark:bg-indigo-500/10 rounded-lg">
+                <Users className="w-8 h-8 text-indigo-600 dark:text-indigo-300 mx-auto mb-2" />
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Invite Team</p>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <Rocket className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-gray-700">Start Managing</p>
+              <div className="p-4 bg-purple-50/80 dark:bg-purple-500/10 rounded-lg">
+                <Rocket className="w-8 h-8 text-purple-600 dark:text-purple-300 mx-auto mb-2" />
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Start Managing</p>
               </div>
             </div>
 
@@ -245,7 +254,7 @@ export default function OnboardingPage() {
                 Go to Login
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <p className="text-sm text-gray-500 mt-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
                 Redirecting to login in a moment...
               </p>
             </div>

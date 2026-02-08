@@ -12,10 +12,11 @@ export const auditLog = (action: string, entityType: string) => {
     const originalJson = res.json.bind(res);
 
     // Override json function to log after response
-    res.json = function (data: any) {
+    res.json = function (data: unknown) {
       // Only log if request was successful
       if (res.statusCode < 400 && req.user && req.organizationId) {
-        const entityId = req.params.id || data?.data?._id || data?.data?.id;
+        const responseData = data as { data?: { _id?: unknown; id?: unknown } };
+        const entityId = req.params.id || responseData?.data?._id || responseData?.data?.id;
 
         // Create audit log asynchronously (don't block response)
         AuditLog.create({
@@ -23,7 +24,7 @@ export const auditLog = (action: string, entityType: string) => {
           userId: req.user._id,
           action,
           entityType,
-          entityId,
+          entityId: entityId ? String(entityId) : undefined,
           metadata: {
             method: req.method,
             path: req.path,

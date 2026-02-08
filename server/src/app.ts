@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -10,8 +11,8 @@ import swaggerUi from 'swagger-ui-express';
 import config from './config/env';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
-// import { apiLimiter } from './middlewares/rateLimit.middleware';
 import logger from './utils/logger';
+import cloudinaryService from './services/cloudinary.service';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -22,18 +23,29 @@ import userRoutes from './routes/user.routes';
 import billingRoutes from './routes/billing.routes';
 import aiRoutes from './routes/ai.routes';
 import contactRoutes from './routes/contact.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import adminRoutes from './routes/admin.routes';
 
 class App {
   public app: Application;
   public server: HTTPServer;
   public io: SocketIOServer;
+  private allowedOrigins: string[];
 
   constructor() {
     this.app = express();
     this.server = createServer(this.app);
+    this.allowedOrigins = Array.from(
+      new Set([
+        config.frontendUrl,
+        'http://localhost',
+        'http://localhost:3000',
+      ].filter(Boolean))
+    );
+
     this.io = new SocketIOServer(this.server, {
       cors: {
-        origin: config.frontendUrl,
+        origin: this.allowedOrigins,
         credentials: true,
       },
     });
@@ -52,7 +64,7 @@ class App {
 
     // CORS
     this.app.use(cors({
-      origin: config.frontendUrl,
+      origin: this.allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       // Explicitly allow custom org header for preflight checks
@@ -85,9 +97,6 @@ class App {
         },
       }));
     }
-
-    // Rate limiting (disabled for development)
-    // this.app.use('/api/', apiLimiter);
 
     // Trust proxy (for rate limiting with nginx)
     this.app.set('trust proxy', 1);
@@ -126,6 +135,23 @@ class App {
       });
     });
 
+    this.app.get('/api/status', (_req, res) => {
+      const uploadsEnabled = true;
+      const uploadsProvider = cloudinaryService.isEnabled() ? 'cloudinary' : 'local';
+      res.status(200).json({
+        success: true,
+        data: {
+          uploads: {
+            enabled: uploadsEnabled,
+            provider: uploadsProvider,
+          },
+        },
+      });
+    });
+
+    // Local uploads (fallback when Cloudinary is not configured)
+    this.app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
     // Register API routes
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/organizations', organizationRoutes);
@@ -135,6 +161,8 @@ class App {
     this.app.use('/api/billing', billingRoutes);
     this.app.use('/api/ai', aiRoutes);
     this.app.use('/api/contact', contactRoutes);
+    this.app.use('/api/analytics', analyticsRoutes);
+    this.app.use('/api/admin', adminRoutes);
   }
 
   private initializeErrorHandling(): void {

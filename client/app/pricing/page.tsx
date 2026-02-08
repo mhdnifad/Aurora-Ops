@@ -8,6 +8,11 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
+import FlowingMenu from '@/components/FlowingMenu';
+import SpotlightCard from '@/components/SpotlightCard';
+import BlurText from '@/components/BlurText';
+import Carousel from '@/components/Carousel';
+import Orb from '@/components/Orb';
 import {
   Check,
   ArrowRight,
@@ -30,6 +35,10 @@ export default function PricingPage() {
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputClass =
+    'pl-10 h-11 bg-white/70 dark:bg-slate-900/70 border-white/30 dark:border-white/10 focus-visible:ring-emerald-500/40';
+  const textareaClass =
+    'min-h-[100px] resize-none bg-white/70 dark:bg-slate-900/70 border-white/30 dark:border-white/10 focus-visible:ring-emerald-500/40';
   
   const [trialForm, setTrialForm] = useState({
     firstName: '',
@@ -177,6 +186,40 @@ export default function PricingPage() {
     },
   ];
 
+  const flowMenuItems = [
+    { link: '#plans', text: 'Starter', image: '/assets/flow/mojave.svg' },
+    { link: '#plans', text: 'Professional', image: '/assets/flow/sonoma.svg' },
+    { link: '#plans', text: 'Enterprise', image: '/assets/flow/monterey.svg' },
+    { link: '#compare', text: 'Compare', image: '/assets/flow/sequoia.svg' },
+  ];
+
+  const pricingCarouselItems = [
+    {
+      id: 1,
+      title: 'Fast setup',
+      description: 'Launch a production-ready workspace in minutes.',
+      icon: <Rocket className="h-4 w-4 text-white" />
+    },
+    {
+      id: 2,
+      title: 'Team scale',
+      description: 'Add teammates and manage roles without friction.',
+      icon: <Users className="h-4 w-4 text-white" />
+    },
+    {
+      id: 3,
+      title: 'Live analytics',
+      description: 'Track outcomes with realtime visibility.',
+      icon: <BarChart3 className="h-4 w-4 text-white" />
+    },
+    {
+      id: 4,
+      title: 'Trusted security',
+      description: 'Keep data protected with enterprise controls.',
+      icon: <Shield className="h-4 w-4 text-white" />
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950">
       {/* Animated background elements */}
@@ -208,17 +251,73 @@ export default function PricingPage() {
 
       {/* Header */}
       <div className="max-w-7xl mx-auto px-6 py-16 text-center space-y-6 animate-fadeIn">
-        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Simple, Transparent Pricing
-        </h1>
+        <BlurText
+          text="Simple, Transparent Pricing"
+          delay={120}
+          animateBy="words"
+          direction="top"
+          className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+        />
         <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
           Choose the perfect plan for your team. All plans include a 14-day free
           trial.
         </p>
+        <div className="flex flex-wrap justify-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Live billing status
+          </span>
+          <span className="inline-flex items-center rounded-full border border-white/20 bg-white/70 px-3 py-1 dark:bg-white/10">
+            Cancel anytime
+          </span>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 pb-10">
+        <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-10 items-center">
+          <div className="space-y-6">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white">
+              Plan intelligence
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              See how each tier unlocks operational speed without the guesswork.
+            </p>
+            <Carousel
+              items={pricingCarouselItems}
+              baseWidth={340}
+              autoplay
+              autoplayDelay={4200}
+              pauseOnHover
+              loop
+              round={false}
+            />
+          </div>
+          <div className="relative h-[360px] rounded-3xl border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10" />
+            <div className="relative h-full">
+              <Orb hoverIntensity={1.2} rotateOnHover hue={190} backgroundColor="#0b1020" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Flowing Menu */}
+      <div className="max-w-7xl mx-auto px-6 pb-10">
+        <div className="relative h-[360px] rounded-3xl overflow-hidden border border-white/20 shadow-2xl">
+          <FlowingMenu
+            items={flowMenuItems}
+            speed={18}
+            textColor="#ffffff"
+            bgColor="#0b0620"
+            marqueeBgColor="#ffffff"
+            marqueeTextColor="#0b0620"
+            borderColor="#ffffff"
+          />
+        </div>
       </div>
 
       {/* Pricing Cards */}
-      <div className="max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8">
+      <div id="plans" className="max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8">
         {plans.map((plan, index) => (
           <Card
             key={index}
@@ -259,7 +358,7 @@ export default function PricingPage() {
                 className={`w-full py-3 ${
                   plan.highlighted
                     ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:shadow-lg hover:-translate-y-0.5 text-white shadow-lg'
-                    : 'bg-white/10 hover:bg-white/15 text-gray-900 dark:text-white border border-white/20 hover:border-white/40'
+                    : 'bg-white/70 dark:bg-white/10 hover:bg-white/90 dark:hover:bg-white/15 text-slate-900 dark:text-white border border-white/30 dark:border-white/10 hover:border-white/50'
                 }`}
               >
                 {plan.cta}
@@ -281,8 +380,8 @@ export default function PricingPage() {
       </div>
 
       {/* Features Comparison */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
+      <div id="compare" className="max-w-7xl mx-auto px-6 py-16">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">
           Why Choose Aurora Ops?
         </h2>
 
@@ -321,13 +420,17 @@ export default function PricingPage() {
           ].map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <Card key={index} className="p-8 border-0 shadow-lg">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                  <Icon className="w-6 h-6 text-blue-600" />
+              <SpotlightCard
+                key={index}
+                className="bg-white/80 dark:bg-gray-900/80 border border-white/30 dark:border-white/10 shadow-lg"
+                spotlightColor="rgba(59, 130, 246, 0.2)"
+              >
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-500/20 dark:to-indigo-500/20 rounded-lg flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-blue-600 dark:text-blue-300" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600 text-sm">{feature.description}</p>
-              </Card>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">{feature.description}</p>
+              </SpotlightCard>
             );
           })}
         </div>
@@ -335,21 +438,21 @@ export default function PricingPage() {
 
       {/* FAQs */}
       <div className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">
           Frequently Asked Questions
         </h2>
 
         <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <Card key={index} className="p-6 border-0 shadow-md hover:shadow-lg transition-shadow">
+            <Card key={index} className="p-6 border border-white/20 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl shadow-md hover:shadow-lg transition-shadow">
               <details className="group cursor-pointer">
-                <summary className="flex items-center justify-between font-semibold text-gray-900">
+                <summary className="flex items-center justify-between font-semibold text-gray-900 dark:text-white">
                   {faq.question}
                   <span className="text-blue-600 group-open:rotate-180 transition-transform">
                     ▼
                   </span>
                 </summary>
-                <p className="mt-4 text-gray-600">{faq.answer}</p>
+                <p className="mt-4 text-gray-600 dark:text-gray-300">{faq.answer}</p>
               </details>
             </Card>
           ))}
@@ -366,14 +469,14 @@ export default function PricingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={() => setShowTrialModal(true)}
-              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3"
+              className="bg-white text-blue-700 hover:bg-white/90 px-8 py-3 shadow-lg"
             >
               Start Free Trial
             </Button>
             <Button
               onClick={() => setShowDemoModal(true)}
               variant="outline"
-              className="border-white text-white hover:bg-white/10 px-8 py-3"
+              className="border-white/60 text-white hover:bg-white/10 px-8 py-3"
             >
               Schedule Demo
             </Button>
@@ -403,7 +506,7 @@ export default function PricingPage() {
                   type="text"
                   value={trialForm.firstName}
                   onChange={(e) => setTrialForm({ ...trialForm, firstName: e.target.value })}
-                  className="pl-10"
+                  className={inputClass}
                   placeholder="John"
                   autoComplete="given-name"
                   required
@@ -421,7 +524,7 @@ export default function PricingPage() {
                   type="text"
                   value={trialForm.lastName}
                   onChange={(e) => setTrialForm({ ...trialForm, lastName: e.target.value })}
-                  className="pl-10"
+                  className={inputClass}
                   placeholder="Doe"
                   autoComplete="family-name"
                   required
@@ -440,7 +543,7 @@ export default function PricingPage() {
                 type="email"
                 value={trialForm.email}
                 onChange={(e) => setTrialForm({ ...trialForm, email: e.target.value })}
-                className="pl-10"
+                className={inputClass}
                 autoComplete="email"
                 placeholder="john@company.com"
                 required
@@ -459,7 +562,7 @@ export default function PricingPage() {
                 value={trialForm.company}
                 onChange={(e) => setTrialForm({ ...trialForm, company: e.target.value })}
                 autoComplete="off"
-                className="pl-10"
+                className={inputClass}
                 placeholder="Your Company"
               />
             </div>
@@ -470,14 +573,14 @@ export default function PricingPage() {
               type="button"
               variant="outline"
               onClick={() => setShowTrialModal(false)}
-              className="flex-1"
+              className="flex-1 border-white/30 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-white/10"
               disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Processing...' : 'Start Free Trial'}
@@ -508,7 +611,7 @@ export default function PricingPage() {
                   type="text"
                   value={demoForm.firstName}
                   onChange={(e) => setDemoForm({ ...demoForm, firstName: e.target.value })}
-                  className="pl-10"
+                  className={inputClass}
                   placeholder="John"
                   required
                 />
@@ -525,7 +628,7 @@ export default function PricingPage() {
                   type="text"
                   value={demoForm.lastName}
                   onChange={(e) => setDemoForm({ ...demoForm, lastName: e.target.value })}
-                  className="pl-10"
+                  className={inputClass}
                   placeholder="Doe"
                   required
                 />
@@ -543,7 +646,7 @@ export default function PricingPage() {
                 type="email"
                 value={demoForm.email}
                 onChange={(e) => setDemoForm({ ...demoForm, email: e.target.value })}
-                className="pl-10"
+                className={inputClass}
                 placeholder="john@company.com"
                 required
               />
@@ -560,7 +663,7 @@ export default function PricingPage() {
                 type="text"
                 value={demoForm.company}
                 onChange={(e) => setDemoForm({ ...demoForm, company: e.target.value })}
-                className="pl-10"
+                className={inputClass}
                 placeholder="Your Company"
                 required
               />
@@ -577,7 +680,7 @@ export default function PricingPage() {
                 type="tel"
                 value={demoForm.phone}
                 onChange={(e) => setDemoForm({ ...demoForm, phone: e.target.value })}
-                className="pl-10"
+                className={inputClass}
                 placeholder="+1 (555) 123-4567"
               />
             </div>
@@ -593,7 +696,7 @@ export default function PricingPage() {
                 type="date"
                 value={demoForm.preferredDate}
                 onChange={(e) => setDemoForm({ ...demoForm, preferredDate: e.target.value })}
-                className="pl-10"
+                className={inputClass}
                 min={new Date().toISOString().split('T')[0]}
               />
             </div>
@@ -607,7 +710,7 @@ export default function PricingPage() {
               value={demoForm.message}
               onChange={(e) => setDemoForm({ ...demoForm, message: e.target.value })}
               placeholder="Tell us about your team and what you'd like to see in the demo..."
-              className="min-h-[100px] resize-none"
+              className={textareaClass}
             />
           </div>
 
@@ -616,14 +719,14 @@ export default function PricingPage() {
               type="button"
               variant="outline"
               onClick={() => setShowDemoModal(false)}
-              className="flex-1"
+              className="flex-1 border-white/30 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-white/10"
               disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Schedule Demo'}
@@ -633,9 +736,9 @@ export default function PricingPage() {
       </Modal>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white mt-16">
-        <div className="max-w-7xl mx-auto px-6 py-12 text-center text-gray-600">
-          <p>&copy; 2024 Aurora Ops. All rights reserved.</p>
+      <footer className="border-t border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur mt-16">
+        <div className="max-w-7xl mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400">
+          <p>&copy; 2026 Aurora Ops. All rights reserved.</p>
         </div>
       </footer>
     </div>

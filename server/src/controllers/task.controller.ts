@@ -11,12 +11,16 @@ import logger from '../utils/logger';
 import { PermissionChecker } from '../permissions/checker';
 import { createTaskSchema, updateTaskSchema, createCommentSchema } from '../validations/task.validation';
 import cloudinaryService from '../services/cloudinary.service';
+import SocketManager from '../socket';
+import fs from 'fs/promises';
+import path from 'path';
 
 /**
  * Create task
  */
 export const createTask = asyncHandler(async (req: AuthRequest, res: Response) => {
-  let { projectId, title, description, priority, status, dueDate, assigneeId } = req.body;
+  const { projectId, title, description, priority, status, dueDate } = req.body;
+  let { assigneeId } = req.body;
   const organizationId = req.organizationId!;
 
   // Filter out empty strings for assigneeId
@@ -60,7 +64,7 @@ export const createTask = asyncHandler(async (req: AuthRequest, res: Response) =
   }
 
   // Create task
-  const taskData: any = {
+  const taskData: Partial<typeof Task.prototype> = {
     projectId,
     organizationId,
     title,
@@ -92,9 +96,14 @@ export const createTask = asyncHandler(async (req: AuthRequest, res: Response) =
 
   logger.info(`Task created: ${task.title}`);
 
+  const populatedTask = await task.populate(['assigneeId', 'createdBy', 'projectId']);
+  const socketManager = SocketManager.getInstance();
+  socketManager?.broadcastTaskUpdate(populatedTask as any, 'created');
+  socketManager?.emitOrgEvent(organizationId, 'task:created', { task: populatedTask });
+
   res.status(201).json({
     success: true,
-    data: await task.populate(['assigneeId', 'createdBy', 'projectId']),
+    data: populatedTask,
   });
 });
 
@@ -107,7 +116,7 @@ export const getProjectTasks = asyncHandler(async (req: AuthRequest, res: Respon
   const organizationId = req.organizationId!;
 
   // Build filter
-  const filter: any = {
+  const filter: Record<string, unknown> = {
     projectId,
     organizationId,
     deletedAt: null,
@@ -153,7 +162,7 @@ export const getMyTasks = asyncHandler(async (req: AuthRequest, res: Response) =
   const organizationId = req.organizationId!;
 
   // Build filter
-  const filter: any = {
+  const filter: Record<string, unknown> = {
     organizationId,
     assigneeId: req.user!._id,
     deletedAt: null,
@@ -279,9 +288,16 @@ export const updateTask = asyncHandler(async (req: AuthRequest, res: Response) =
 
   logger.info(`Task updated: ${task.title}`);
 
+  const populatedUpdatedTask = await updatedTask?.populate(['assigneeId', 'createdBy', 'projectId']);
+  const socketManager = SocketManager.getInstance();
+  if (populatedUpdatedTask) {
+    socketManager?.broadcastTaskUpdate(populatedUpdatedTask as any, 'updated');
+    socketManager?.emitOrgEvent(organizationId, 'task:updated', { task: populatedUpdatedTask });
+  }
+
   res.json({
     success: true,
-    data: await updatedTask?.populate(['assigneeId', 'createdBy', 'projectId']),
+    data: populatedUpdatedTask,
   });
 });
 
@@ -330,6 +346,17 @@ export const deleteTask = asyncHandler(async (req: AuthRequest, res: Response) =
 
   logger.info(`Task deleted: ${task.title}`);
 
+  const socketManager = SocketManager.getInstance();
+  socketManager?.broadcastTaskUpdate({
+    assigneeId: task.assigneeId,
+    taskId: task._id,
+    projectId: task.projectId,
+  } as any, 'deleted');
+  socketManager?.emitOrgEvent(organizationId, 'task:deleted', {
+    taskId: task._id,
+    projectId: task.projectId,
+  });
+
   res.json({
     success: true,
     message: 'Task deleted',
@@ -361,6 +388,7 @@ export const createComment = asyncHandler(async (req: AuthRequest, res: Response
 
   // Create comment
   const comment = await Comment.create({
+    organizationId,
     taskId: id,
     content,
     userId: req.user!._id,
@@ -380,9 +408,16 @@ export const createComment = asyncHandler(async (req: AuthRequest, res: Response
 
   logger.info(`Comment created on task: ${task.title}`);
 
+  const populatedComment = await comment.populate('createdBy', 'firstName lastName avatar');
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(organizationId, 'comment:created', {
+    comment: populatedComment,
+    taskId: id,
+  });
+
   res.status(201).json({
     success: true,
-    data: await comment.populate('createdBy', 'firstName lastName avatar'),
+    data: populatedComment,
   });
 });
 
@@ -403,13 +438,13 @@ export const getTaskComments = asyncHandler(async (req: AuthRequest, res: Respon
     throw new NotFoundError('Task not found');
   }
 
-  const comments = await Comment.find({ task: id, deletedAt: null })
+  const comments = await Comment.find({ taskId: id, organizationId, deletedAt: null })
     .populate('createdBy', 'firstName lastName avatar email')
     .limit(Number(limit))
     .skip((Number(page) - 1) * Number(limit))
     .sort({ createdAt: 1 });
 
-  const total = await Comment.countDocuments({ task: id, deletedAt: null });
+  const total = await Comment.countDocuments({ taskId: id, organizationId, deletedAt: null });
 
   res.json({
     success: true,
@@ -422,7 +457,7 @@ export const getTaskComments = asyncHandler(async (req: AuthRequest, res: Respon
  * Update comment
  */
 export const updateComment = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id: _id, commentId } = req.params;
+  const { commentId } = req.params;
   const { content } = req.body;
   const organizationId = req.organizationId!;
 
@@ -432,7 +467,8 @@ export const updateComment = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   // Check if user is the comment creator
-  if ((comment as any)?.createdBy.toString() !== req.user!._id.toString()) {
+  const commentData = comment as unknown as { userId: { toString: () => string } };
+  if (commentData.userId.toString() !== req.user!._id.toString()) {
     throw new AuthorizationError('You can only edit your own comments');
   }
 
@@ -457,9 +493,18 @@ export const updateComment = asyncHandler(async (req: AuthRequest, res: Response
 
   logger.info(`Comment updated`);
 
+  const populatedUpdatedComment = await updatedComment?.populate('createdBy', 'firstName lastName avatar');
+  const socketManager = SocketManager.getInstance();
+  if (populatedUpdatedComment) {
+    socketManager?.emitOrgEvent(organizationId, 'comment:updated', {
+      comment: populatedUpdatedComment,
+      taskId: comment.taskId,
+    });
+  }
+
   res.json({
     success: true,
-    data: await updatedComment?.populate('createdBy', 'firstName lastName avatar'),
+    data: populatedUpdatedComment,
   });
 });
 
@@ -467,7 +512,7 @@ export const updateComment = asyncHandler(async (req: AuthRequest, res: Response
  * Delete comment
  */
 export const deleteComment = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id: _id, commentId } = req.params;
+  const { commentId } = req.params;
   const organizationId = req.organizationId!;
 
   const comment = await Comment.findById(commentId);
@@ -477,7 +522,7 @@ export const deleteComment = asyncHandler(async (req: AuthRequest, res: Response
 
   // Check if user is the comment creator or has permission
   const canDelete =
-    (comment as any)?.createdBy.toString() === req.user!._id.toString() ||
+    ((comment as unknown as { userId: { toString: () => string } })?.userId.toString() === req.user!._id.toString()) ||
     (await PermissionChecker.userHasPermission(req.user!._id, organizationId, 'delete_task'));
 
   if (!canDelete) {
@@ -501,6 +546,12 @@ export const deleteComment = asyncHandler(async (req: AuthRequest, res: Response
   });
 
   logger.info(`Comment deleted`);
+
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(organizationId, 'comment:deleted', {
+    commentId: comment._id,
+    taskId: comment.taskId,
+  });
 
   res.json({
     success: true,
@@ -544,7 +595,33 @@ export const uploadAttachment = asyncHandler(async (req: AuthRequest, res: Respo
   }
 
   if (!cloudinaryService.isEnabled()) {
-    throw new ValidationError('File uploads are currently disabled');
+    const uploadsRoot = path.join(process.cwd(), 'uploads');
+    const taskDir = path.join(uploadsRoot, 'tasks', Array.isArray(id) ? id[0] : id);
+    await fs.mkdir(taskDir, { recursive: true });
+
+    const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${Date.now()}_${safeName}`;
+    const filePath = path.join(taskDir, fileName);
+    await fs.writeFile(filePath, req.file.buffer);
+
+    const relativeUrl = `/uploads/tasks/${Array.isArray(id) ? id[0] : id}/${fileName}`;
+    task.attachments = task.attachments || [];
+    task.attachments.push({
+      name: req.file.originalname,
+      url: relativeUrl,
+      size: req.file.size,
+      type: req.file.mimetype,
+      publicId: undefined,
+      storage: 'local',
+      localPath: filePath,
+    });
+    await task.save();
+
+    res.status(201).json({
+      success: true,
+      data: { attachments: task.attachments },
+    });
+    return;
   }
 
   const result = await cloudinaryService.uploadTaskAttachment(
@@ -560,6 +637,8 @@ export const uploadAttachment = asyncHandler(async (req: AuthRequest, res: Respo
     size: result.bytes,
     type: req.file.mimetype,
     publicId: result.publicId,
+    storage: 'cloudinary',
+    localPath: null,
   });
   await task.save();
 
@@ -589,7 +668,7 @@ export const deleteAttachment = asyncHandler(async (req: AuthRequest, res: Respo
     throw new AuthorizationError('You do not have permission to modify task attachments');
   }
 
-  const attachment = (task.attachments || []).find((a: any) => a._id?.toString() === attachmentId);
+  const attachment = (task.attachments || []).find((a: { _id?: { toString: () => string } }) => a._id?.toString() === attachmentId);
   if (!attachment) {
     throw new NotFoundError('Attachment not found');
   }
@@ -597,14 +676,27 @@ export const deleteAttachment = asyncHandler(async (req: AuthRequest, res: Respo
   // Delete from Cloudinary when possible
   if (attachment.publicId && cloudinaryService.isEnabled()) {
     try {
-      await cloudinaryService.deleteFile(attachment.publicId, 'auto' as any);
+      const resourceType = attachment.type?.startsWith('image/')
+        ? 'image'
+        : attachment.type?.startsWith('video/')
+          ? 'video'
+          : 'raw';
+      await cloudinaryService.deleteFile(attachment.publicId, resourceType);
     } catch (e) {
       logger.warn('Failed to delete Cloudinary file, continuing to remove from task', { error: e });
     }
   }
 
+  if ((attachment as { localPath?: string })?.localPath) {
+    try {
+      await fs.unlink((attachment as { localPath?: string }).localPath as string);
+    } catch (e) {
+      logger.warn('Failed to delete local attachment file', { error: e });
+    }
+  }
+
   // Remove from task document
-  task.attachments = (task.attachments || []).filter((a: any) => a._id?.toString() !== attachmentId);
+  task.attachments = (task.attachments || []).filter((a: { _id?: { toString: () => string } }) => a._id?.toString() !== attachmentId);
   await task.save();
 
   res.json({
@@ -612,3 +704,4 @@ export const deleteAttachment = asyncHandler(async (req: AuthRequest, res: Respo
     data: { attachments: task.attachments },
   });
 });
+

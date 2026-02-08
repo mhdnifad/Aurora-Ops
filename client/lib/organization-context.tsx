@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { useAuth } from './auth-context';
 import { apiClient } from './api-client';
+import { normalizeUserRole } from './roles';
 
 interface Organization {
   _id: string;
@@ -32,6 +33,11 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   // Load organizations from API
   const loadOrganizations = useCallback(async () => {
     if (!isAuthenticated) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('currentOrganization');
+      }
+      setCurrentOrganizationState(null);
+      setOrganizations([]);
       setIsLoading(false);
       return;
     }
@@ -42,18 +48,35 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       
       // If no current org is set, use the first one from the list
       const stored = localStorage.getItem('currentOrganization');
-      if (!stored && orgs && orgs.length > 0) {
-        setCurrentOrganizationState(orgs[0]);
-        localStorage.setItem('currentOrganization', JSON.stringify(orgs[0]));
+      if (orgs && orgs.length > 0) {
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored) as Organization;
+            const exists = orgs.some((org) => org._id === parsed._id);
+            if (!exists) {
+              setCurrentOrganizationState(orgs[0]);
+              localStorage.setItem('currentOrganization', JSON.stringify(orgs[0]));
+            }
+          } catch (e) {
+            setCurrentOrganizationState(orgs[0]);
+            localStorage.setItem('currentOrganization', JSON.stringify(orgs[0]));
+          }
+        } else {
+          setCurrentOrganizationState(orgs[0]);
+          localStorage.setItem('currentOrganization', JSON.stringify(orgs[0]));
+        }
+      } else if (stored) {
+        localStorage.removeItem('currentOrganization');
+        setCurrentOrganizationState(null);
       }
     } catch (error) {
-      console.error('Failed to load organizations:', error);
+      // Failed to load organizations
     } finally {
       setIsLoading(false);
     }
   }, [isAuthenticated]);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount and load organizations once when authenticated
   React.useEffect(() => {
     const stored = localStorage.getItem('currentOrganization');
     if (stored) {
@@ -61,40 +84,61 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         setCurrentOrganizationState(JSON.parse(stored));
         setIsLoading(false);
       } catch (e) {
-        // Invalid JSON in localStorage, continue to fetch
-        loadOrganizations();
+        // Invalid JSON in localStorage
+        localStorage.removeItem('currentOrganization');
       }
     }
-  }, []);
-
-  // Load organizations when authenticated
-  React.useEffect(() => {
+    
+    // Load organizations if authenticated
     if (isAuthenticated) {
       loadOrganizations();
+    } else {
+      setCurrentOrganizationState(null);
+      setOrganizations([]);
+      setIsLoading(false);
     }
-  }, [isAuthenticated, loadOrganizations]);
+  }, [isAuthenticated]);
 
   // Fetch user role when organization changes
   React.useEffect(() => {
     const fetchUserRole = async () => {
-      if (!currentOrganization?._id) {
-        setUserRole(null as any);
+      if (!isAuthenticated || !currentOrganization?._id) {
+        setUserRole(null);
         return;
       }
-      
+
+      if (typeof window !== 'undefined') {
+        const storedTokens = localStorage.getItem('auth_tokens');
+        if (!storedTokens) {
+          setUserRole(null);
+          return;
+        }
+      }
+
       try {
         const response = await apiClient.get('user/role');
-        if ((response as any)?.data?.role) {
-          setUserRole((response as any).data.role);
+        const role = (response as any)?.data?.role;
+        if (role) {
+          setUserRole(normalizeUserRole(role));
+        } else {
+          setUserRole(null);
         }
-      } catch (error) {
-        console.error('Failed to fetch user role:', error);
-        setUserRole(null as any);
+      } catch (error: any) {
+        setUserRole(null);
+
+        const status = error?.response?.status;
+        if (status === 400 || status === 401 || status === 403 || status === 404) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('currentOrganization');
+          }
+          setCurrentOrganizationState(null);
+          loadOrganizations();
+        }
       }
     };
 
     fetchUserRole();
-  }, [currentOrganization, setUserRole]);
+  }, [currentOrganization, isAuthenticated, loadOrganizations, setUserRole]);
 
   const setCurrentOrganization = useCallback((org: Organization | null) => {
     if (org) {
@@ -104,23 +148,6 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
     setCurrentOrganizationState(org);
   }, []);
-
-  // If authenticated and no org is stored, hydrate with the first available org
-  React.useEffect(() => {
-    const hydrateOrg = async () => {
-      if (!isAuthenticated || currentOrganization) return;
-      try {
-        const orgs = await apiClient.getOrganizations(1, 1);
-        if (orgs?.length) {
-          setCurrentOrganization(orgs[0]);
-        }
-      } catch (error) {
-        // Silent fail; user will select org later
-      }
-    };
-
-    hydrateOrg();
-  }, [isAuthenticated, currentOrganization, setCurrentOrganization]);
 
   return (
     <OrganizationContext.Provider

@@ -19,7 +19,9 @@ export interface ITask extends Document {
     url: string;
     size: number;
     type: string;
-    publicId?: string;
+    publicId?: string | null;
+    storage?: 'cloudinary' | 'local';
+    localPath?: string | null;
   }>;
   createdAt: Date;
   updatedAt: Date;
@@ -96,6 +98,8 @@ const TaskSchema = new Schema<ITask>(
           size: { type: Number, default: 0 },
           type: { type: String, default: 'application/octet-stream' },
           publicId: { type: String, default: null },
+          storage: { type: String, default: 'cloudinary' },
+          localPath: { type: String, default: null },
         },
         { _id: true }
       ),

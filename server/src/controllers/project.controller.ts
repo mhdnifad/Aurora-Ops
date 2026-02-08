@@ -10,6 +10,7 @@ import logger from '../utils/logger';
 import { PermissionChecker } from '../permissions/checker';
 import { createProjectSchema, updateProjectSchema } from '../validations/project.validation';
 import { PROJECT_STATUS } from '../config/constants';
+import SocketManager from '../socket';
 
 /**
  * Create project
@@ -26,14 +27,14 @@ export const createProject = asyncHandler(async (req: AuthRequest, res: Response
   const organizationId = req.organizationId!;
 
   // Check if organization exists
-  const org = await Organization.findById(organizationId);
+  const org = await Organization.findOne({ _id: organizationId, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
   // Check permissions
   const canCreate = await PermissionChecker.userHasPermission(
-    req.user!.userId,
+    req.user!._id,
     organizationId,
     'create_project'
   );
@@ -50,7 +51,7 @@ export const createProject = asyncHandler(async (req: AuthRequest, res: Response
     icon,
     color,
     organizationId,
-    ownerId: req.user!.userId,
+    ownerId: req.user!._id,
   });
 
   // Log audit
@@ -58,7 +59,7 @@ export const createProject = asyncHandler(async (req: AuthRequest, res: Response
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId,
     action: 'create_project',
     entityType: 'Project',
@@ -69,6 +70,9 @@ export const createProject = asyncHandler(async (req: AuthRequest, res: Response
   });
 
   logger.info(`Project created: ${project.name}`);
+
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(organizationId, 'project:created', { project });
 
   res.status(201).json({
     success: true,
@@ -147,6 +151,7 @@ export const updateProject = asyncHandler(async (req: AuthRequest, res: Response
   const project = await Project.findOne({
     _id: id,
     organizationId,
+    deletedAt: null,
   });
 
   if (!project) {
@@ -155,7 +160,7 @@ export const updateProject = asyncHandler(async (req: AuthRequest, res: Response
 
   // Check permissions
   const canUpdate = await PermissionChecker.userHasPermission(
-    req.user!.userId,
+    req.user!._id,
     organizationId,
     'update_project'
   );
@@ -165,24 +170,24 @@ export const updateProject = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   // Update project
-  const updatedProject = await Project.findByIdAndUpdate(
-    id,
+  const updatedProject = await Project.findOneAndUpdate(
+    { _id: id, deletedAt: null },
     {
       name,
       description,
       icon,
       color,
-      slug: name ? slugify(name) : (project as any)?.slug,
+      slug: name ? slugify(name) : project.slug,
     },
     { new: true, runValidators: true }
   );
 
   // Log audit
   const fwd4 = (req.headers['x-forwarded-for'] as string) || '';
-  const ip4 = fwd4.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
+  const ip4 = fwd4.split(',')[0].trim() || req.socket?.remoteAddress?.toString() || 'unknown';
   const ua4 = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId,
     action: 'update_project',
     entityType: 'Project',
@@ -193,6 +198,11 @@ export const updateProject = asyncHandler(async (req: AuthRequest, res: Response
   });
 
   logger.info(`Project updated: ${project.name}`);
+
+  const socketManager = SocketManager.getInstance();
+  if (updatedProject) {
+    socketManager?.emitOrgEvent(organizationId, 'project:updated', { project: updatedProject });
+  }
 
   res.json({
     success: true,
@@ -210,6 +220,7 @@ export const archiveProject = asyncHandler(async (req: AuthRequest, res: Respons
   const project = await Project.findOne({
     _id: id,
     organizationId,
+    deletedAt: null,
   });
 
   if (!project) {
@@ -218,7 +229,7 @@ export const archiveProject = asyncHandler(async (req: AuthRequest, res: Respons
 
   // Check permissions
   const canDelete = await PermissionChecker.userHasPermission(
-    req.user!.userId,
+    req.user!._id,
     organizationId,
     'delete_project'
   );
@@ -236,7 +247,7 @@ export const archiveProject = asyncHandler(async (req: AuthRequest, res: Respons
   const ip1 = fwd1.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua1 = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId,
     action: 'archive_project',
     entityType: 'Project',
@@ -247,6 +258,9 @@ export const archiveProject = asyncHandler(async (req: AuthRequest, res: Respons
   });
 
   logger.info(`Project archived: ${project.name}`);
+
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(organizationId, 'project:archived', { project });
 
   res.json({
     success: true,
@@ -264,6 +278,7 @@ export const unarchiveProject = asyncHandler(async (req: AuthRequest, res: Respo
   const project = await Project.findOne({
     _id: id,
     organizationId,
+    deletedAt: null,
   });
 
   if (!project) {
@@ -272,7 +287,7 @@ export const unarchiveProject = asyncHandler(async (req: AuthRequest, res: Respo
 
   // Check permissions
   const canDelete = await PermissionChecker.userHasPermission(
-    req.user!.userId,
+    req.user!._id,
     organizationId,
     'delete_project'
   );
@@ -290,7 +305,7 @@ export const unarchiveProject = asyncHandler(async (req: AuthRequest, res: Respo
   const ip2 = fwd2.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua2 = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId,
     action: 'unarchive_project',
     entityType: 'Project',
@@ -301,6 +316,9 @@ export const unarchiveProject = asyncHandler(async (req: AuthRequest, res: Respo
   });
 
   logger.info(`Project unarchived: ${project.name}`);
+
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(organizationId, 'project:unarchived', { project });
 
   res.json({
     success: true,
@@ -318,6 +336,7 @@ export const deleteProject = asyncHandler(async (req: AuthRequest, res: Response
   const project = await Project.findOne({
     _id: id,
     organizationId,
+    deletedAt: null,
   });
 
   if (!project) {
@@ -326,7 +345,7 @@ export const deleteProject = asyncHandler(async (req: AuthRequest, res: Response
 
   // Check permissions
   const canDelete = await PermissionChecker.userHasPermission(
-    req.user!.userId,
+    req.user!._id,
     organizationId,
     'delete_project'
   );
@@ -344,7 +363,7 @@ export const deleteProject = asyncHandler(async (req: AuthRequest, res: Response
   const ip3 = fwd3.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua3 = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId,
     action: 'delete_project',
     entityType: 'Project',
@@ -355,6 +374,9 @@ export const deleteProject = asyncHandler(async (req: AuthRequest, res: Response
   });
 
   logger.info(`Project deleted: ${project.name}`);
+
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(organizationId, 'project:deleted', { projectId: project._id });
 
   res.json({
     success: true,
@@ -372,6 +394,7 @@ export const getProjectStats = asyncHandler(async (req: AuthRequest, res: Respon
   const project = await Project.findOne({
     _id: id,
     organization: organizationId,
+    deletedAt: null,
   });
 
   if (!project) {
@@ -444,7 +467,7 @@ export const inviteProjectMember = asyncHandler(async (req: AuthRequest, res: Re
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId,
     action: 'invite_project_member',
     entityType: 'Project',
@@ -473,6 +496,7 @@ export const getProjectMembers = asyncHandler(async (req: AuthRequest, res: Resp
   const project = await Project.findOne({
     _id: id,
     organizationId,
+    deletedAt: null,
   }).populate('members', 'firstName lastName email avatar');
 
   if (!project) {
@@ -501,6 +525,7 @@ export const removeProjectMember = asyncHandler(async (req: AuthRequest, res: Re
   const project = await Project.findOne({
     _id: id,
     organizationId,
+    deletedAt: null,
   });
 
   if (!project) {
@@ -510,7 +535,7 @@ export const removeProjectMember = asyncHandler(async (req: AuthRequest, res: Re
   // Remove member from members array
   if (Array.isArray(project.members)) {
     project.members = project.members.filter(
-      (m: any) => m.toString() !== memberId
+      (m: { toString: () => string }) => m.toString() !== memberId
     );
     await project.save();
   }
@@ -520,7 +545,7 @@ export const removeProjectMember = asyncHandler(async (req: AuthRequest, res: Re
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId,
     action: 'remove_project_member',
     entityType: 'Project',
@@ -537,3 +562,4 @@ export const removeProjectMember = asyncHandler(async (req: AuthRequest, res: Re
     message: 'Member removed successfully',
   });
 });
+

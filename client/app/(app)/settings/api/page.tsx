@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { Key, Copy, RotateCw, Trash2, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ApiPage() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function ApiPage() {
   const [apiKeys, setApiKeys] = useState<Array<{ id: string; label: string; maskedToken?: string; createdAt: string; lastUsedAt?: string }>>([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const inputClass = 'h-11 bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10';
 
   const fetchKeys = async () => {
     try {
@@ -29,7 +32,7 @@ export default function ApiPage() {
           lastUsedAt: k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : 'Never',
         }))
       );
-    } catch (e) {
+    } catch {
       // Ignore for now
     }
   };
@@ -57,7 +60,7 @@ export default function ApiPage() {
       setNewKeyName('');
       // Refresh list
       await fetchKeys();
-    } catch (error) {
+    } catch {
       toast.error('Failed to create API key');
     } finally {
       setIsLoading(false);
@@ -79,54 +82,73 @@ export default function ApiPage() {
       await apiClient.revokeApiKey(id);
       setApiKeys((prev) => prev.filter((k) => k.id !== id));
       toast.success('API key deleted');
-    } catch (e) {
+    } catch {
       toast.error('Failed to delete API key');
     }
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">API Keys</h2>
-        <p className="text-gray-600 mt-1">Manage your API keys for programmatic access</p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/settings">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">API Keys</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your API keys for programmatic access</p>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Secure access
+        </div>
       </div>
 
       {/* Create New Key */}
-      <Card className="p-6">
+      <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Key className="w-5 h-5" />
           Create New API Key
         </h3>
         <form onSubmit={handleCreateKey} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Key Name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Key Name</label>
             <Input
               type="text"
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
               placeholder="e.g., Production, Development"
               disabled={isLoading}
+              className={inputClass}
             />
           </div>
-          <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
             {isLoading ? 'Creating...' : 'Create API Key'}
           </Button>
         </form>
       </Card>
 
       {/* Existing Keys */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Your API Keys</h3>
+      <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Your API Keys</h3>
         <div className="space-y-4">
-          {apiKeys.map((key) => (
-            <div key={key.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+          {apiKeys.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-white/30 dark:border-white/10 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+              No API keys yet. Create one to start integrating Aurora Ops.
+            </div>
+          ) : apiKeys.map((key) => (
+            <div key={key.id} className="border border-white/20 dark:border-white/10 rounded-xl p-4 space-y-3 bg-white/90 dark:bg-white/5">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900">{key.label}</h4>
-                <div className="text-sm text-gray-500">Created: {key.createdAt}</div>
+                <h4 className="font-medium text-gray-900 dark:text-white">{key.label}</h4>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Created: {key.createdAt}</div>
               </div>
 
-              <div className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
-                <code className="text-sm text-gray-600">{key.maskedToken || '••••••••'}</code>
+              <div className="bg-gray-50/80 dark:bg-white/5 p-3 rounded-lg flex items-center justify-between">
+                <code className="text-sm text-gray-600 dark:text-gray-300">{key.maskedToken || '••••••••'}</code>
                 <button
                   onClick={() => handleCopyKey(key.maskedToken)}
                   className="text-blue-600 hover:text-blue-700 ml-2"
@@ -135,7 +157,7 @@ export default function ApiPage() {
                 </button>
               </div>
 
-              <div className="flex items-center justify-between text-sm text-gray-500 pt-2 border-t border-gray-200">
+              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200/70 dark:border-white/10">
                 <span>Last used: {key.lastUsedAt || 'Never'}</span>
                 <div className="flex items-center gap-2">
                   <Button
@@ -164,9 +186,9 @@ export default function ApiPage() {
       </Card>
 
       {/* Documentation */}
-      <Card className="p-6 bg-blue-50 border-blue-200">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">API Documentation</h3>
-        <p className="text-blue-800 text-sm mb-3">Learn how to use Aurora Ops API in your application.</p>
+      <Card className="p-6 bg-blue-50/80 dark:bg-blue-500/10 border border-blue-200/60 dark:border-blue-500/20">
+        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">API Documentation</h3>
+        <p className="text-blue-800 dark:text-blue-300 text-sm mb-3">Learn how to use Aurora Ops API in your application.</p>
         <Button 
           variant="outline" 
           className="text-blue-600 hover:text-blue-700 flex items-center gap-2"

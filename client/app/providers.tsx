@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/lib/auth-context';
 import { OrganizationProvider } from '@/lib/organization-context';
 import { SocketProvider } from '@/lib/socket-context';
+import { RealtimeSync } from '@/lib/realtime-sync';
 
 import { LanguageProvider } from '@/lib/language-context';
 import { TimezoneProvider } from '@/lib/timezone-context';
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <TimezoneProvider>
             <OrganizationProvider>
               <SocketProvider>
+                <RealtimeSync />
                 <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="theme">
                   {children}
                   <Toaster position="top-right" richColors />

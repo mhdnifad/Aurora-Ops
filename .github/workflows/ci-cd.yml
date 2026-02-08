@@ -1,4 +1,4 @@
-name: Aurora Ops CI/CD
+name: CI/CD Pipeline
 
 on:
   push:
@@ -10,31 +10,13 @@ env:
   NODE_VERSION: '20.x'
 
 jobs:
-  # Backend Tests and Build
-  backend:
-    name: Backend CI
+  # Lint and Test Backend
+  backend-test:
+    name: Backend - Lint & Test
     runs-on: ubuntu-latest
-    
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    defaults:
+      run:
+        working-directory: ./server
 
     steps:
       - name: Checkout code
@@ -47,40 +29,28 @@ jobs:
           cache: 'npm'
           cache-dependency-path: server/package-lock.json
 
-      - name: Install backend dependencies
-        working-directory: ./server
+      - name: Install dependencies
         run: npm ci
 
       - name: Run ESLint
-        working-directory: ./server
-        run: npm run lint || true
+        run: npm run lint
 
-      - name: Run tests
-        working-directory: ./server
-        run: npm test || true
-        env:
-          NODE_ENV: test
-          MONGODB_URI: mongodb://localhost:27017/aurora-ops-test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret-for-ci
-          JWT_REFRESH_SECRET: test-refresh-secret-for-ci
-
-      - name: Build backend
-        working-directory: ./server
+      - name: Build TypeScript
         run: npm run build
 
-      - name: Upload backend artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-dist
-          path: server/dist/
-          retention-days: 7
+      - name: Run tests
+        run: npm test --if-present
+        env:
+          NODE_ENV: test
 
-  # Frontend Tests and Build
-  frontend:
-    name: Frontend CI
+  # Lint and Test Frontend
+  frontend-test:
+    name: Frontend - Lint & Build
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: ./client
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -92,35 +62,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: client/package-lock.json
 
-      - name: Install frontend dependencies
-        working-directory: ./client
+      - name: Install dependencies
         run: npm ci
 
       - name: Run ESLint
-        working-directory: ./client
-        run: npm run lint || true
+        run: npm run lint
 
-      - name: Build frontend
-        working-directory: ./client
+      - name: Build application
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:5000/api
-          NEXT_PUBLIC_SOCKET_URL: http://localhost:5000
 
-      - name: Upload frontend artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: client/.next/
-          retention-days: 7
+      - name: Run tests
+        run: npm test --if-present
 
-  # Docker Build (only on main branch)
-  docker:
-    name: Docker Build
+  # Build Docker Images
+  docker-build:
+    name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
-    if: github.ref == 'refs/heads/main'
-    
+    needs: [backend-test, frontend-test]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -128,98 +90,92 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend Docker image
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./server
-          file: ./server/Dockerfile
-          push: false
-          tags: aurora-ops-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:buildcache,mode=max
 
-      - name: Build frontend Docker image
+      - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./client
-          file: ./client/Dockerfile
-          push: false
-          tags: aurora-ops-frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:buildcache,mode=max
 
-  # Code Quality Checks
-  code-quality:
-    name: Code Quality
+  # Security Scan
+  security-scan:
+    name: Security Scan
     runs-on: ubuntu-latest
-    
+    needs: [backend-test, frontend-test]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
         with:
-          fetch-depth: 0
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
 
-      - name: Run security audit (backend)
-        working-directory: ./server
-        run: npm audit --production || true
-
-      - name: Run security audit (frontend)
-        working-directory: ./client
-        run: npm audit --production || true
-
-      - name: Check for secrets
-        uses: trufflesecurity/trufflehog@main
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-        continue-on-error: true
+          sarif_file: 'trivy-results.sarif'
 
-  # Deployment (only on main branch)
-  deploy:
+  # Deploy to Production
+  deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [backend, frontend, docker]
+    needs: [docker-build]
     if: github.ref == 'refs/heads/main'
-    
+    environment:
+      name: production
+      url: https://auroraops.com
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy notification
-        run: |
-          echo "🚀 Deployment would happen here"
-          echo "Configure your deployment steps based on your hosting provider:"
-          echo "- AWS: Use aws-actions/configure-aws-credentials"
-          echo "- Azure: Use azure/login"
-          echo "- DigitalOcean: Use digitalocean/action-doctl"
-          echo "- Vercel: Use vercel-action"
-          
-      # Example AWS deployment (uncomment and configure)
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: us-east-1
-      #
-      # - name: Deploy to ECS
-      #   run: |
-      #     # Your ECS deployment commands here
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/aurora-ops
+            docker-compose pull
+            docker-compose up -d
+            docker system prune -af
 
-  # Notify on Success
-  notify:
-    name: Notify
-    runs-on: ubuntu-latest
-    needs: [backend, frontend]
-    if: always()
-    
-    steps:
-      - name: Send notification
+      - name: Health check
         run: |
-          if [ "${{ needs.backend.result }}" == "success" ] && [ "${{ needs.frontend.result }}" == "success" ]; then
-            echo "✅ All checks passed!"
-          else
-            echo "❌ Some checks failed"
-            exit 1
-          fi
+          sleep 30
+          curl -f ${{ secrets.PROD_URL }}/health || exit 1
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment completed!'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()

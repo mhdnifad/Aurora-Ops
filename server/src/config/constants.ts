@@ -1,9 +1,27 @@
-export const ROLES = {
+export const SYSTEM_ROLES = {
+  ADMIN: 'admin',
+  USER: 'user',
+} as const;
+
+export const ORG_ROLES = {
+  COMPANY_ADMIN: 'company_admin',
+  MANAGER: 'manager',
+  EMPLOYEE: 'employee',
+  CLIENT: 'client',
+} as const;
+
+export const LEGACY_ROLES = {
   OWNER: 'owner',
   ADMIN: 'admin',
-  MANAGER: 'manager',
   MEMBER: 'member',
+  VIEWER: 'viewer',
   GUEST: 'guest',
+} as const;
+
+// Combined for backwards compatibility with existing imports
+export const ROLES = {
+  ...ORG_ROLES,
+  ...LEGACY_ROLES,
 } as const;
 
 export const PERMISSIONS = {
@@ -30,6 +48,22 @@ export const PERMISSIONS = {
   TASK_DELETE: 'task:delete',
   TASK_ASSIGN: 'task:assign',
 } as const;
+
+// Map legacy or route-level permission strings to canonical permissions
+export const PERMISSION_ALIASES: Record<string, string[]> = {
+  create_project: [PERMISSIONS.PROJECT_WRITE],
+  update_project: [PERMISSIONS.PROJECT_WRITE],
+  delete_project: [PERMISSIONS.PROJECT_DELETE],
+  create_task: [PERMISSIONS.TASK_WRITE],
+  update_task: [PERMISSIONS.TASK_WRITE],
+  delete_task: [PERMISSIONS.TASK_DELETE],
+  manage_members: [
+    PERMISSIONS.MEMBER_INVITE,
+    PERMISSIONS.MEMBER_REMOVE,
+    PERMISSIONS.MEMBER_UPDATE_ROLE,
+  ],
+  update_organization: [PERMISSIONS.ORGANIZATION_WRITE],
+};
 
 export const TASK_STATUS = {
   TODO: 'todo',

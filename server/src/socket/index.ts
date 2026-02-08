@@ -13,14 +13,24 @@ interface SocketUser {
 }
 
 export class SocketManager {
+  private static instance: SocketManager | null = null;
   private io: Server;
   private userSockets: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
   private organizationSockets: Map<string, Set<string>> = new Map(); // orgId -> Set of socketIds
 
   constructor(io: Server) {
     this.io = io;
+    SocketManager.instance = this;
     this.setupMiddleware();
     this.setupHandlers();
+  }
+
+  public static getInstance(): SocketManager | null {
+    return SocketManager.instance;
+  }
+
+  public emitOrgEvent(organizationId: string, event: string, payload: Record<string, unknown>) {
+    this.io.to(`org:${organizationId}`).emit(event, payload);
   }
 
   private setupMiddleware() {
@@ -38,9 +48,9 @@ export class SocketManager {
           return next(new Error('Authentication failed'));
         }
 
-        (socket as any).user = user;
+        (socket as Socket & { user?: SocketUser }).user = user;
         next();
-      } catch (error) {
+      } catch {
         next(new Error('Authentication error'));
       }
     });
@@ -48,7 +58,7 @@ export class SocketManager {
 
   private setupHandlers() {
     this.io.on('connection', (socket: Socket) => {
-      const user = (socket as any).user as SocketUser;
+      const user = (socket as Socket & { user?: SocketUser }).user as SocketUser;
 
       if (!user.organizationId) {
         socket.disconnect();
@@ -73,6 +83,7 @@ export class SocketManager {
 
       // Broadcast user online status
       this.broadcastUserPresence(user, 'online');
+      this.broadcastOnlineCount(user.organizationId);
 
       // Handle events
       socket.on('join-project', (projectId) => this.handleJoinProject(socket, user, projectId));
@@ -129,7 +140,7 @@ export class SocketManager {
     }
   }
 
-  private async handleTaskCreate(socket: Socket, user: SocketUser, data: any) {
+  private async handleTaskCreate(socket: Socket, user: SocketUser, data: { projectId: string; taskData: Record<string, unknown> }) {
     try {
       const { projectId, taskData } = data;
 
@@ -163,11 +174,15 @@ export class SocketManager {
     }
   }
 
-  private async handleTaskUpdate(socket: Socket, user: SocketUser, data: any) {
+  private async handleTaskUpdate(socket: Socket, user: SocketUser, data: { taskId: string; projectId: string; updates: Record<string, unknown> }) {
     try {
       const { taskId, projectId, updates } = data;
 
-      const task = await Task.findByIdAndUpdate(taskId, updates, { new: true });
+      const task = await Task.findOneAndUpdate(
+        { _id: taskId, deletedAt: null },
+        updates,
+        { new: true }
+      );
       if (!task) {
         throw new Error('Task not found');
       }
@@ -186,11 +201,14 @@ export class SocketManager {
     }
   }
 
-  private async handleTaskDelete(socket: Socket, user: SocketUser, data: any) {
+  private async handleTaskDelete(socket: Socket, user: SocketUser, data: { taskId: string; projectId: string }) {
     try {
       const { taskId, projectId } = data;
 
-      await Task.findByIdAndDelete(taskId);
+      await Task.findOneAndUpdate(
+        { _id: taskId, deletedAt: null },
+        { $set: { deletedAt: new Date() } }
+      );
 
       this.io.to(`project:${projectId}`).emit('task:deleted', {
         taskId,
@@ -205,7 +223,7 @@ export class SocketManager {
     }
   }
 
-  private async handleTaskComment(socket: Socket, user: SocketUser, data: any) {
+  private async handleTaskComment(socket: Socket, user: SocketUser, data: { taskId: string; projectId: string; comment: string }) {
     try {
       const { taskId, projectId, comment } = data;
 
@@ -227,7 +245,7 @@ export class SocketManager {
     }
   }
 
-  private async handleNotificationRead(socket: Socket, _user: SocketUser, data: any) {
+  private async handleNotificationRead(socket: Socket, _user: SocketUser, data: { notificationId: string }) {
     try {
       const { notificationId } = data;
 
@@ -240,12 +258,13 @@ export class SocketManager {
     }
   }
 
-  private async handleTyping(_socket: Socket, user: SocketUser, data: any) {
+  private async handleTyping(_socket: Socket, user: SocketUser, data: { taskId: string; projectId: string }) {
     try {
       const { taskId, projectId } = data;
 
       this.io.to(`project:${projectId}`).emit('user:typing', {
         userId: user.id,
+        email: user.email,
         taskId,
         timestamp: new Date(),
       });
@@ -254,12 +273,13 @@ export class SocketManager {
     }
   }
 
-  private async handleStopTyping(_socket: Socket, user: SocketUser, data: any) {
+  private async handleStopTyping(_socket: Socket, user: SocketUser, data: { taskId: string; projectId: string }) {
     try {
       const { taskId, projectId } = data;
 
       this.io.to(`project:${projectId}`).emit('user:stop-typing', {
         userId: user.id,
+        email: user.email,
         taskId,
         timestamp: new Date(),
       });
@@ -278,6 +298,7 @@ export class SocketManager {
       }
 
       this.organizationSockets.get(user.organizationId)?.delete(socket.id);
+      this.broadcastOnlineCount(user.organizationId);
 
       logger.info(`User disconnected: ${user.id} - ${socket.id}`);
     } catch (error) {
@@ -307,12 +328,19 @@ export class SocketManager {
   private broadcastUserPresence(user: SocketUser, status: 'online' | 'offline') {
     this.io.to(`org:${user.organizationId}`).emit('user:presence', {
       userId: user.id,
+      email: user.email,
       status,
       timestamp: new Date(),
     });
   }
 
-  private broadcastNotification(organizationId: string, notification: any) {
+  private broadcastOnlineCount(organizationId: string) {
+    const sockets = this.organizationSockets.get(organizationId);
+    const count = sockets ? sockets.size : 0;
+    this.io.to(`org:${organizationId}`).emit('online_users_count', count);
+  }
+
+  private broadcastNotification(organizationId: string, notification: Record<string, unknown>) {
     this.io.to(`org:${organizationId}`).emit('notification:new', notification);
   }
 
@@ -408,13 +436,20 @@ export class SocketManager {
   }
 
   // Broadcast task updates to subscribed users
-  public broadcastTaskUpdate(task: any, event: 'created' | 'updated' | 'deleted') {
-    if (task.assignedTo) {
-      this.io.to(`user-tasks:${task.assignedTo}`).emit(`task:${event}`, task);
-      
-      // Also update stats for the user
-      this.updateUserStats(task.assignedTo.toString());
+  public broadcastTaskUpdate(
+    task: { assigneeId?: unknown; assignedTo?: unknown; status?: string },
+    event: 'created' | 'updated' | 'deleted'
+  ) {
+    const assignee = task.assigneeId ?? task.assignedTo;
+    if (!assignee) {
+      return;
     }
+
+    const assigneeId = typeof assignee === 'string' ? assignee : (assignee as any)?.toString?.() || String(assignee);
+    this.io.to(`user-tasks:${assigneeId}`).emit(`task:${event}`, task);
+
+    // Also update stats for the user
+    this.updateUserStats(assigneeId);
   }
 
   // Update and broadcast user stats

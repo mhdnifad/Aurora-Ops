@@ -9,9 +9,10 @@ export interface AuthRequest extends Request {
     _id: string;  // Alias for userId for compatibility
     email: string;
     organizationId?: string;
+    systemRole?: string;
   };
   organizationId?: string;  // For tenant middleware
-  file?: any;  // For file uploads
+  file?: Express.Multer.File;  // For file uploads
   sessionId?: string;  // For session tracking
 }
 
@@ -49,6 +50,7 @@ export const authenticate = async (
       _id: decoded.userId,  // Alias for compatibility
       email: decoded.email,
       organizationId: decoded.organizationId,
+      systemRole: user.systemRole,
     };
 
     next();
@@ -87,11 +89,12 @@ export const optionalAuthenticate = async (
         _id: decoded.userId,  // Alias for compatibility
         email: decoded.email,
         organizationId: decoded.organizationId,
+        systemRole: user.systemRole,
       };
     }
 
     next();
-  } catch (error) {
+  } catch {
     // Continue without authentication
     next();
   }

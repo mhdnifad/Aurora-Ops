@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Save, Loader2, Sun, Moon, Monitor, Globe, Clock, Bell, Mail } from 'lucide-react';
+import { Save, Loader2, Sun, Moon, Monitor, Globe, Clock, Bell, Mail, ArrowLeft } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { useTheme } from 'next-themes';
 import { useQueryClient } from '@tanstack/react-query';
@@ -216,7 +217,7 @@ export default function PreferencesPage() {
         setTimezone(loadedTimezone);
       }
     } catch (error) {
-      console.log('Using default preferences');
+      // Using default preferences
     } finally {
       setIsLoading(false);
     }
@@ -271,7 +272,6 @@ export default function PreferencesPage() {
       );
     } catch (error) {
       toast.error('Failed to save preferences');
-      console.error(error);
     } finally {
       setIsSaving(false);
     }
@@ -279,22 +279,47 @@ export default function PreferencesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-24 rounded bg-gray-100 dark:bg-gray-800/80 animate-pulse" />
+          <div>
+            <div className="h-6 w-40 rounded bg-gray-100 dark:bg-gray-800/80 animate-pulse" />
+            <div className="mt-2 h-4 w-64 rounded bg-gray-100 dark:bg-gray-800/80 animate-pulse" />
+          </div>
+        </div>
+        <Card className="p-8 border border-white/20 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 shadow-md animate-pulse">
+          <div className="h-5 w-32 rounded bg-gray-100 dark:bg-gray-800/80" />
+          <div className="mt-6 h-24 rounded bg-gray-100 dark:bg-gray-800/80" />
+          <div className="mt-6 h-24 rounded bg-gray-100 dark:bg-gray-800/80" />
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Preferences
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Customize your workspace preferences</p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/settings">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Preferences
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Customize your workspace preferences</p>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-900/70 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          Live preferences
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+        </div>
       </div>
 
-      <Card className="p-8 backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border-white/20 shadow-xl">
+      <Card className="p-8 backdrop-blur-xl bg-white/80 dark:bg-slate-900/70 border border-white/20 dark:border-white/10 shadow-xl">
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Theme */}
           <motion.div
@@ -383,7 +408,7 @@ export default function PreferencesPage() {
               value={prefs.language}
               onChange={handleChange}
               disabled={isSaving}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all duration-300 hover:border-purple-400"
+              className="w-full px-4 py-3 border border-white/30 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-transparent text-gray-900 dark:text-gray-100 bg-white/70 dark:bg-slate-900/70 disabled:bg-gray-100/70 dark:disabled:bg-gray-800/60 disabled:cursor-not-allowed transition-all duration-300 hover:border-purple-400/70"
             >
               {LANGUAGES.map((lang) => (
                 <option key={lang.code} value={lang.code}>
@@ -414,7 +439,7 @@ export default function PreferencesPage() {
               value={prefs.timezone}
               onChange={handleChange}
               disabled={isSaving}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all duration-300 hover:border-pink-400"
+              className="w-full px-4 py-3 border border-white/30 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500/40 focus:border-transparent text-gray-900 dark:text-gray-100 bg-white/70 dark:bg-slate-900/70 disabled:bg-gray-100/70 dark:disabled:bg-gray-800/60 disabled:cursor-not-allowed transition-all duration-300 hover:border-pink-400/70"
             >
               {TIMEZONES.map((tz) => (
                 <option key={tz.value} value={tz.value}>
@@ -432,7 +457,7 @@ export default function PreferencesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800"
+            className="p-6 rounded-xl bg-gradient-to-br from-blue-50/80 to-purple-50/80 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/60 dark:border-blue-500/20"
           >
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-blue-600" />
@@ -478,7 +503,7 @@ export default function PreferencesPage() {
               value={prefs.emailDigest}
               onChange={handleChange}
               disabled={isSaving}
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all duration-300 hover:border-indigo-400"
+              className="w-full px-4 py-3 border border-white/30 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-transparent text-gray-900 dark:text-gray-100 bg-white/70 dark:bg-slate-900/70 disabled:bg-gray-100/70 dark:disabled:bg-gray-800/60 disabled:cursor-not-allowed transition-all duration-300 hover:border-indigo-400/70"
             >
               <option value="never">Never</option>
               <option value="daily">Daily Summary</option>
@@ -495,7 +520,7 @@ export default function PreferencesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="pt-6 border-t-2 border-gray-200 dark:border-gray-700"
+            className="pt-6 border-t border-white/30 dark:border-white/10"
           >
             <Button
               type="submit"

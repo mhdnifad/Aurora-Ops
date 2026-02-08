@@ -1,12 +1,15 @@
 import OpenAI from 'openai';
 import logger from '../utils/logger';
+import config from '../config/env';
 
 class AIService {
   private openai: OpenAI | null = null;
   private enabled: boolean = false;
+  private model: string;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = config.openai?.apiKey;
+    this.model = config.openai?.model || 'gpt-4o-mini';
     
     if (apiKey && apiKey !== 'your_openai_api_key') {
       this.openai = new OpenAI({ apiKey });
@@ -24,6 +27,36 @@ class AIService {
     return this.enabled;
   }
 
+  getModel(): string {
+    return this.model;
+  }
+
+  /**
+   * Generic content generation helper
+   */
+  async generateContent(prompt: string, systemPrompt: string, maxTokens: number = 300, temperature: number = 0.7): Promise<string> {
+    if (!this.enabled || !this.openai) {
+      return 'AI service not configured';
+    }
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: maxTokens,
+        temperature,
+      });
+
+      return response.choices[0]?.message?.content || 'Unable to generate content';
+    } catch (error) {
+      logger.error('Error generating content:', error);
+      throw new Error('Failed to generate content');
+    }
+  }
+
   /**
    * Generate task summary from description
    */
@@ -34,7 +67,7 @@ class AIService {
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.model,
         messages: [
           {
             role: 'system',
@@ -73,7 +106,7 @@ class AIService {
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.model,
         messages: [
           {
             role: 'system',
@@ -124,7 +157,7 @@ Metrics:
       ).join('\n');
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.model,
         messages: [
           {
             role: 'system',
@@ -163,7 +196,7 @@ Metrics:
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.model,
         messages: [
           {
             role: 'system',
@@ -202,7 +235,7 @@ ${projectData.deadline ? `Deadline: ${projectData.deadline.toLocaleDateString()}
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.model,
         messages: [
           {
             role: 'system',

@@ -22,6 +22,7 @@ export default function NewOrganizationPage() {
   const router = useRouter();
   const { setCurrentOrganization } = useOrganization();
   const t = useT();
+  const inputClass = 'h-12 bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -58,27 +59,33 @@ export default function NewOrganizationPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('nav.dashboard')}
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">{t('projects.create')}</h1>
-          <p className="text-gray-600 mt-1">{t('nav.organizations')}</p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t('nav.dashboard')}
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('organizations.create')}</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">{t('nav.organizations')}</p>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Workspace setup
         </div>
       </div>
 
       {/* Form Card */}
-      <Card className="p-8">
+      <Card className="p-8 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name Field */}
           <div>
-            <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
+            <label htmlFor="name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               {t('nav.organizations')} *
             </label>
             <div className="relative">
@@ -91,15 +98,15 @@ export default function NewOrganizationPage() {
                 onChange={handleChange}
                 placeholder="Acme Corporation"
                 disabled={isLoading}
-                className="pl-11 h-12"
+                className={`pl-11 ${inputClass}`}
               />
             </div>
           </div>
 
           {/* Description Field */}
           <div>
-            <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('common.edit')}
+            <label htmlFor="description" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Description
             </label>
             <textarea
               id="description"
@@ -108,13 +115,13 @@ export default function NewOrganizationPage() {
               onChange={handleChange}
               placeholder="Tell us about your organization"
               disabled={isLoading}
-              className="w-full h-32 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-32 px-4 py-2 border border-gray-200/60 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 dark:bg-white/5"
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-600 dark:text-red-300 text-sm">
               {error}
             </div>
           )}
@@ -123,7 +130,7 @@ export default function NewOrganizationPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+            className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
           >
             {isLoading ? (
               <>
@@ -132,7 +139,7 @@ export default function NewOrganizationPage() {
               </>
             ) : (
               <>
-                {t('projects.create')}
+                {t('organizations.create')}
               </>
             )}
           </Button>

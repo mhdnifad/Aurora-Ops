@@ -10,6 +10,28 @@ import redis from '../config/redis';
 import logger from '../utils/logger';
 import emailService from '../services/email.service';
 import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validations/auth.validation';
+import { generateToken, hashToken } from '../utils/token';
+import config from '../config/env';
+
+const getDurationSeconds = (value: string, fallbackSeconds: number): number => {
+  if (!value) {
+    return fallbackSeconds;
+  }
+  const match = value.trim().match(/^(\d+)([smhd])$/i);
+  if (!match) {
+    return fallbackSeconds;
+  }
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  if (unit === 's') return amount;
+  if (unit === 'm') return amount * 60;
+  if (unit === 'h') return amount * 60 * 60;
+  if (unit === 'd') return amount * 24 * 60 * 60;
+  return fallbackSeconds;
+};
+
+const REFRESH_TTL_SECONDS = getDurationSeconds(config.jwt.refreshExpiresIn, 7 * 24 * 60 * 60);
+const EMAIL_VERIFY_TTL_SECONDS = 24 * 60 * 60;
 
 /**
  * Register a new user
@@ -31,7 +53,7 @@ export const register = asyncHandler(async (req: AuthRequest, res: Response) => 
     '0.0.0.0';
 
   // Check if user already exists
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  const existingUser = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
   if (existingUser) {
     throw new ConflictError('Email already registered');
   }
@@ -59,28 +81,38 @@ export const register = asyncHandler(async (req: AuthRequest, res: Response) => 
     email: user.email,
   });
 
-  const refreshToken = typeof refreshTokenPayload === 'string' ? refreshTokenPayload : refreshTokenPayload.token;
+  const refreshToken = refreshTokenPayload.token;
+  const refreshTokenHash = hashToken(refreshToken);
 
   // Store refresh token in Redis
-  await redis.setEx(`refresh_token:${user._id.toString()}`, 7 * 24 * 60 * 60, refreshToken);
+  await redis.setRefreshToken(user._id.toString(), refreshTokenPayload.tokenId, REFRESH_TTL_SECONDS);
 
   // Create session
   await Session.create({
     userId: user._id,
-    refreshToken,
+    tokenId: refreshTokenPayload.tokenId,
+    refreshToken: refreshTokenHash,
     deviceInfo: {
       userAgent,
       ip,
     },
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + REFRESH_TTL_SECONDS * 1000),
   });
 
   logger.info(`User registered: ${user.email}`);
 
-  // Send welcome email (async, don't wait)
+  // Send welcome + verification email (async, don't wait)
   emailService.sendWelcomeEmail(user.email, user.firstName).catch(err => {
     logger.error('Failed to send welcome email:', err);
   });
+
+  if (emailService.isEnabled()) {
+    const verificationToken = generateToken(32);
+    await redis.setEx(`email_token:${verificationToken}`, EMAIL_VERIFY_TTL_SECONDS, user._id.toString());
+    emailService.sendVerificationEmail(user.email, user.firstName, verificationToken).catch(err => {
+      logger.error('Failed to send verification email:', err);
+    });
+  }
 
   // Return sanitized user and tokens
   res.status(201).json({
@@ -92,6 +124,7 @@ export const register = asyncHandler(async (req: AuthRequest, res: Response) => 
         lastName: user.lastName,
         email: user.email,
         avatar: user.avatar,
+        systemRole: user.systemRole,
       },
       tokens: {
         accessToken,
@@ -122,13 +155,13 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
     '0.0.0.0';
 
   // Find user by email
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  const user = await User.findOne({ email: email.toLowerCase(), deletedAt: null }).select('+password');
   if (!user) {
     throw new AuthenticationError('Invalid email or password');
   }
 
   // Check if account is active
-  if (!(user as any)?.isActive) {
+  if (!user.isActive) {
     throw new AuthenticationError('Account has been deactivated');
   }
 
@@ -149,20 +182,22 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
     email: user.email,
   });
 
-  const refreshToken = typeof refreshTokenPayload === 'string' ? refreshTokenPayload : refreshTokenPayload.token;
+  const refreshToken = refreshTokenPayload.token;
+  const refreshTokenHash = hashToken(refreshToken);
 
   // Store refresh token in Redis
-  await redis.setEx(`refresh_token:${user._id.toString()}`, 7 * 24 * 60 * 60, refreshToken);
+  await redis.setRefreshToken(user._id.toString(), refreshTokenPayload.tokenId, REFRESH_TTL_SECONDS);
 
   // Create session
   await Session.create({
     userId: user._id,
-    refreshToken,
+    tokenId: refreshTokenPayload.tokenId,
+    refreshToken: refreshTokenHash,
     deviceInfo: {
       userAgent,
       ip,
     },
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + REFRESH_TTL_SECONDS * 1000),
   });
 
   // Update last login
@@ -180,6 +215,7 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
         lastName: user.lastName,
         email: user.email,
         avatar: user.avatar,
+        systemRole: user.systemRole,
       },
       tokens: {
         accessToken,
@@ -199,26 +235,55 @@ export const refreshToken = asyncHandler(async (req: AuthRequest, res: Response)
     throw new AuthenticationError('Refresh token is required');
   }
 
-  // Verify refresh token
+  // Verify refresh token JWT signature
   const decoded = JWTUtil.verifyRefreshToken(token);
 
-  // Check if token exists in Redis
-  const storedToken = await redis.get(`refresh_token:${decoded.userId}`);
-  if (!storedToken || storedToken !== token) {
-    throw new AuthenticationError('Invalid or expired refresh token');
-  }
-
-  // Get user
-  const user = await User.findById(decoded.userId);
-  if (!user || !(user as any)?.isActive) {
+  // Get user (check user exists before Redis check)
+  const user = await User.findOne({ _id: decoded.userId, deletedAt: null });
+  if (!user || !user.isActive) {
     throw new AuthenticationError('User not found or inactive');
   }
 
-  // Generate new access token
+  const tokenHash = hashToken(token);
+  const isRedisValid = await redis.validateRefreshToken(decoded.userId, decoded.tokenId);
+  const session = await Session.findOne({
+    userId: decoded.userId,
+    tokenId: decoded.tokenId,
+    isActive: true,
+    deletedAt: null,
+  });
+
+  if (!isRedisValid && !session) {
+    throw new AuthenticationError('Refresh token has been revoked');
+  }
+
+  if (session && session.refreshToken !== tokenHash) {
+    throw new AuthenticationError('Refresh token is invalid');
+  }
+
+  // Generate new access + refresh token (rotation)
   const accessToken = JWTUtil.generateAccessToken({
     userId: user._id.toString(),
     email: user.email,
   });
+
+  const newRefresh = JWTUtil.generateRefreshToken({
+    userId: user._id.toString(),
+    email: user.email,
+  });
+
+  const newRefreshHash = hashToken(newRefresh.token);
+
+  if (session) {
+    session.tokenId = newRefresh.tokenId;
+    session.refreshToken = newRefreshHash;
+    session.lastActivityAt = new Date();
+    session.expiresAt = new Date(Date.now() + REFRESH_TTL_SECONDS * 1000);
+    await session.save();
+  }
+
+  await redis.revokeRefreshToken(decoded.userId, decoded.tokenId);
+  await redis.setRefreshToken(user._id.toString(), newRefresh.tokenId, REFRESH_TTL_SECONDS);
 
   logger.info(`Token refreshed for user: ${user.email}`);
 
@@ -226,6 +291,7 @@ export const refreshToken = asyncHandler(async (req: AuthRequest, res: Response)
     success: true,
     data: {
       accessToken,
+      refreshToken: newRefresh.token,
     },
   });
 });
@@ -235,12 +301,26 @@ export const refreshToken = asyncHandler(async (req: AuthRequest, res: Response)
  */
 export const logout = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user!._id;
+  const token = (req.body?.refreshToken as string | undefined) || '';
 
-  // Delete refresh token from Redis
-  await redis.del(`refresh_token:${userId}`);
+  if (token) {
+    try {
+      const decoded = JWTUtil.verifyRefreshToken(token);
+      await redis.revokeRefreshToken(decoded.userId, decoded.tokenId);
+      await Session.updateMany(
+        { userId: decoded.userId, tokenId: decoded.tokenId },
+        { isActive: false }
+      );
+    } catch {
+      // Ignore invalid refresh token on logout
+    }
+  }
 
   // Delete all sessions for this user
-  await Session.deleteMany({ userId });
+  await Session.updateMany(
+    { userId, deletedAt: null },
+    { $set: { deletedAt: new Date(), isActive: false } }
+  );
 
   logger.info(`User logged out: ${req.user!.email}`);
 
@@ -254,7 +334,7 @@ export const logout = asyncHandler(async (req: AuthRequest, res: Response) => {
  * Get current user
  */
 export const getCurrentUser = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const user = await User.findById(req.user!._id);
+  const user = await User.findOne({ _id: req.user!._id, deletedAt: null });
 
   if (!user) {
     throw new AuthenticationError('User not found');
@@ -269,8 +349,9 @@ export const getCurrentUser = asyncHandler(async (req: AuthRequest, res: Respons
         lastName: user.lastName,
         email: user.email,
         avatar: user.avatar,
-        isActive: (user as any)?.isActive,
+        isActive: user.isActive,
         createdAt: user.createdAt,
+        systemRole: user.systemRole,
       },
     },
   });
@@ -289,7 +370,7 @@ export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Respons
   }
 
   // Find user
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const user = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
   if (!user) {
     // Don't reveal if email exists
     res.json({
@@ -355,7 +436,7 @@ export const resetPassword = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   // Find user
-  const user = await User.findById(userId);
+  const user = await User.findOne({ _id: userId, deletedAt: null });
   if (!user) {
     throw new AuthenticationError('User not found');
   }
@@ -394,7 +475,7 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
   }
 
   // Get user with password field
-  const user = await User.findById(req.user!._id).select('+password');
+  const user = await User.findOne({ _id: req.user!._id, deletedAt: null }).select('+password');
   if (!user) {
     throw new AuthenticationError('User not found');
   }
@@ -437,9 +518,9 @@ export const verifyEmail = asyncHandler(async (req: AuthRequest, res: Response) 
   }
 
   // Update user
-  const user = await User.findByIdAndUpdate(
-    userId,
-    { emailVerified: true },
+  const user = await User.findOneAndUpdate(
+    { _id: userId, deletedAt: null },
+    { isEmailVerified: true },
     { new: true }
   );
 

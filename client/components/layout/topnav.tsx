@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useSocket } from '@/lib/socket-context';
+import { useOrganization } from '@/lib/organization-context';
+import { OnlineIndicator } from '@/components/ui/realtime-indicators';
 import { useT } from '@/lib/useT';
 import {
   Bell,
@@ -28,6 +30,7 @@ export function TopNav() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { isConnected } = useSocket();
+  const { currentOrganization } = useOrganization();
   const t = useT();
 
   useEffect(() => {
@@ -71,7 +74,7 @@ export function TopNav() {
           {/* Connection status */}
           <div
             className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-medium"
-            title={isConnected ? t('common.success') : t('common.error')}
+            title={isConnected ? 'Live updates on' : currentOrganization ? 'Connecting realtime' : 'Realtime paused'}
           >
             <span
               className={`inline-flex w-2.5 h-2.5 rounded-full ${
@@ -79,9 +82,11 @@ export function TopNav() {
               }`}
             />
             <span className="text-gray-700 dark:text-gray-200">
-              {isConnected ? t('common.success') : t('common.error')}
+              {isConnected ? 'Live' : currentOrganization ? 'Connecting' : 'Paused'}
             </span>
           </div>
+
+          <OnlineIndicator />
 
           {/* Theme Toggle */}
           {mounted && (
@@ -105,7 +110,7 @@ export function TopNav() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition"
             >
               {(user as any)?.avatar ? (
                 <img
@@ -125,8 +130,8 @@ export function TopNav() {
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                <div className="p-3 border-b border-gray-200">
+              <div className="absolute right-0 top-12 w-52 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-xl shadow-2xl z-50">
+                <div className="p-3 border-b border-gray-200/70 dark:border-gray-700/70">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.firstName} {user?.lastName}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                 </div>
@@ -137,7 +142,7 @@ export function TopNav() {
                       router.push('/settings/profile');
                       setShowUserMenu(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-700/60 rounded"
                   >
                     <User className="w-4 h-4" />
                     {t('settings.profile')}
@@ -147,18 +152,18 @@ export function TopNav() {
                       router.push('/settings');
                       setShowUserMenu(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-700/60 rounded"
                   >
                     <Settings className="w-4 h-4" />
                     {t('settings.title')}
                   </button>
                 </div>
 
-                <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="p-2 border-t border-gray-200/70 dark:border-gray-700/70">
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 rounded"
                   >
                     {isLoggingOut ? (
                       <>

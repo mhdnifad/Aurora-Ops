@@ -3,16 +3,17 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-// Normalize base URL to always include /api, using internal service URL on the server
+// Resolve API base URL - use the value as-is since it should already include /api
 const resolveApiBaseUrl = () => {
   const isBrowser = typeof window !== 'undefined';
-  const raw = isBrowser
-    ? process.env.NEXT_PUBLIC_API_URL
-    : process.env.API_SERVER_URL || process.env.NEXT_PUBLIC_API_URL;
-
-  const fallback = isBrowser ? 'http://localhost:5000' : 'http://backend:5000';
-  const base = raw || fallback;
-  return base.endsWith('/api') ? base : `${base.replace(/\/$/, '')}/api`;
+  
+  if (isBrowser) {
+    // In browser, use NEXT_PUBLIC_API_URL which should be /api for proxy or full URL
+    return process.env.NEXT_PUBLIC_API_URL || '/api';
+  } else {
+    // On server (SSR), use internal backend service URL
+    return process.env.API_SERVER_URL || 'http://localhost:5000/api';
+  }
 };
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -65,6 +66,7 @@ class ApiClient {
         if (stored) {
           const tokens = JSON.parse(stored);
           this.accessToken = tokens.accessToken;
+          this.refreshToken = tokens.refreshToken;
         }
         
         // Add organization ID to headers if available
@@ -92,18 +94,15 @@ class ApiClient {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
+        const isRefreshRequest = typeof originalRequest?.url === 'string' && originalRequest.url.includes('auth/refresh-token');
 
         // If 401 and not a refresh attempt, try to refresh token
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshRequest) {
           originalRequest._retry = true;
 
-          // If we don't have a refresh token, just clear state and let caller handle navigation
+          // If we don't have a refresh token, just clear state and throw error
           if (!this.refreshToken) {
             this.clearTokens();
-            // Optionally, redirect to login
-            if (typeof window !== 'undefined') {
-              window.location.href = '/auth/login?session=expired';
-            }
             return Promise.reject(error);
           }
 
@@ -112,27 +111,39 @@ class ApiClient {
               refreshToken: this.refreshToken,
             });
 
-            const { accessToken } = response.data.data;
-            this.setTokens(accessToken, this.refreshToken!);
+            const { accessToken, refreshToken } = response.data.data;
+            this.setTokens(accessToken, refreshToken || this.refreshToken!);
 
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.client(originalRequest);
-          } catch (err) {
-            // Refresh failed, logout user and redirect to login
-            this.clearTokens();
-            if (typeof window !== 'undefined') {
-              window.location.href = '/auth/login?session=expired';
+          } catch (err: any) {
+            // Refresh failed: clear tokens so the app can redirect to login
+            if (err.response) {
+              this.clearTokens();
             }
-            // Optionally, show a message
-            return Promise.reject({
-              ...error,
-              message: 'Your session has expired. Please log in again.'
-            });
+            return Promise.reject(err);
           }
+        }
+
+        // If the refresh endpoint itself fails, clear tokens to prevent loops
+        if (isRefreshRequest && error.response) {
+          this.clearTokens();
         }
 
         return Promise.reject(error);
       }
+    );
+  }
+
+  private notifyAuthChange(hasTokens: boolean) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('auth:tokens', {
+        detail: { hasTokens },
+      })
     );
   }
 
@@ -143,6 +154,8 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth_tokens', JSON.stringify({ accessToken, refreshToken }));
     }
+
+    this.notifyAuthChange(true);
   }
 
   clearTokens() {
@@ -152,23 +165,21 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_tokens');
     }
+
+    this.notifyAuthChange(false);
   }
 
   async request<T>(method: string, url: string, data?: any): Promise<T> {
-    try {
-      const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-      const response = await this.client.request<{ success: boolean; data: T }>({
-        method,
-        url,
-        data,
-        headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
-      });
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+    const response = await this.client.request<{ success: boolean; data: T }>({
+      method,
+      url,
+      data,
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
 
-      // Extract the actual data from the API response structure
-      return response.data.data as T;
-    } catch (error) {
-      throw error;
-    }
+    // Extract the actual data from the API response structure
+    return response.data.data as T;
   }
 
   async get<T = any>(url: string): Promise<T> {
@@ -443,6 +454,10 @@ class ApiClient {
   // AI endpoints
   async getAIStatus() {
     return this.request<any>('GET', 'ai/status');
+  }
+
+  async getPlatformStatus() {
+    return this.request<any>('GET', 'status');
   }
 
   async generateTaskSummary(taskTitle: string, taskDescription: string) {

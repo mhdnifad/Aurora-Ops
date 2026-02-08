@@ -27,8 +27,9 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
+  systemRole?: 'admin' | 'user';
   apiKeys?: Array<{
-    _id?: any;
+    _id?: mongoose.Types.ObjectId;
     token: string;
     label: string;
     createdAt: Date;
@@ -105,6 +106,12 @@ const UserSchema = new Schema<IUser>(
     deletedAt: {
       type: Date,
       default: null,
+    },
+    systemRole: {
+      type: String,
+      enum: ['admin', 'user'],
+      default: 'user',
+      index: true,
     },
     preferences: {
       type: {

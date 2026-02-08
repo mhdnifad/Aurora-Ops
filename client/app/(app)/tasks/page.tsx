@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useGetMyTasks } from '@/lib/hooks';
 import { useRealtimeTasks } from '@/lib/socket-hooks-enhanced';
+import { useSocket } from '@/lib/socket-context';
 import { useFormatDate } from '@/lib/utils';
 import { useT } from '@/lib/useT';
 import { useOrganization } from '@/lib/organization-context';
@@ -32,15 +33,15 @@ type ViewMode = 'kanban' | 'list';
 const getPriorityColor = (priority: string) => {
   switch (priority) {
     case 'urgent':
-      return 'bg-rose-100 text-rose-700 border-rose-200';
+      return 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30';
     case 'high':
-      return 'bg-red-100 text-red-700 border-red-200';
+      return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30';
     case 'medium':
-      return 'bg-orange-100 text-orange-700 border-orange-200';
+      return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30';
     case 'low':
-      return 'bg-green-100 text-green-700 border-green-200';
+      return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/30';
     default:
-      return 'bg-gray-100 text-gray-700 border-gray-200';
+      return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-500/15 dark:text-gray-300 dark:border-gray-500/30';
   }
 };
 
@@ -92,8 +93,8 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-const TaskCard = ({ task }: { task: any }) => (
-  <Link href={`/projects/${task.projectId?._id}/tasks/${task._id}`}>
+const TaskCard = ({ task, formatDate }: { task: any; formatDate: (date: string | Date) => string }) => (
+  <Link href={`/tasks/${task._id}`}>
     <Card className="p-4 hover:shadow-lg transition-all cursor-pointer border border-gray-200 hover:border-blue-300 bg-white group">
       <div className="space-y-3">
         {/* Priority Badge */}
@@ -107,7 +108,7 @@ const TaskCard = ({ task }: { task: any }) => (
               new Date(task.dueDate) < new Date() ? 'text-red-600 font-semibold' : 'text-gray-500'
             }`}>
               <Clock className="w-3 h-3" />
-              {typeof formatDate === 'function' ? formatDate(task.dueDate) : ''}
+              {formatDate(task.dueDate)}
             </div>
           )}
         </div>
@@ -143,23 +144,23 @@ const TaskCard = ({ task }: { task: any }) => (
   </Link>
 );
 
-const KanbanColumn = ({ status, title, tasks, color }: { status: string; title: string; tasks: any[]; color: string }) => (
+const KanbanColumn = ({ title, tasks, color, formatDate }: { status?: string; title: string; tasks: any[]; color: string; formatDate: (date: string | Date) => string }) => (
   <div className="flex-1 min-w-[300px]">
     <div className="mb-4">
       <div className="flex items-center gap-2 mb-2">
         <div className={`w-3 h-3 rounded-full ${color}`} />
-        <h3 className="font-bold text-gray-900">{title}</h3>
-        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-medium">
+        <h3 className="font-bold text-gray-900 dark:text-white">{title}</h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100/80 dark:bg-white/10 px-2 py-0.5 rounded-full font-medium">
           {tasks.length}
         </span>
       </div>
     </div>
     <div className="space-y-3 max-h-[calc(100vh-350px)] overflow-y-auto pr-2 pb-4">
       {tasks.length > 0 ? (
-        tasks.map((task) => <TaskCard key={task._id} task={task} />)
+        tasks.map((task) => <TaskCard key={task._id} task={task} formatDate={formatDate} />)
       ) : (
-        <Card className="p-8 text-center border-2 border-dashed border-gray-200 bg-gray-50">
-          <CheckSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+        <Card className="p-8 text-center border-2 border-dashed border-gray-200/70 dark:border-white/10 bg-gray-50/80 dark:bg-white/5 backdrop-blur-xl">
+          <CheckSquare className="w-8 h-8 text-gray-300 dark:text-gray-500 mx-auto mb-2" />
           <p className="text-sm text-gray-400">No {title.toLowerCase()} tasks</p>
         </Card>
       )}
@@ -172,10 +173,12 @@ export default function TasksPage() {
   const [filter, setFilter] = useState<FilterOption>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const { currentOrganization, organizations, isLoading: orgLoading } = useOrganization();
+  const { isConnected } = useSocket();
   const { data: tasks, isLoading } = useGetMyTasks();
   const realtimeTasks = useRealtimeTasks();
   const t = useT();
   const formatDate = useFormatDate();
+  const inputClass = 'pl-11 h-11 bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10';
 
 
   // If no organization context, show a friendly message
@@ -240,16 +243,26 @@ export default function TasksPage() {
             {t('tasks.create')}
           </p>
         </div>
-        <Link href="/tasks/new">
-          <Button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:shadow-lg hover:-translate-y-0.5 text-white shadow-lg">
-            <Plus className="w-5 h-5 mr-2" />
-            New Task
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isConnected ? 'bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.2)]' : 'bg-amber-500 animate-pulse'
+              }`}
+            />
+            {isConnected ? 'Live updates' : currentOrganization ? 'Connecting' : 'Paused'}
+          </div>
+          <Link href="/tasks/new">
+            <Button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:shadow-lg hover:-translate-y-0.5 text-white shadow-lg">
+              <Plus className="w-5 h-5 mr-2" />
+              New Task
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search, Filter, and View Toggle */}
-      <Card className="p-4 backdrop-blur-xl bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 shadow-md">
+      <Card className="p-4 backdrop-blur-xl bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10 shadow-md">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -259,17 +272,17 @@ export default function TasksPage() {
               placeholder={t('tasks.title') + '...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-11 h-11 text-base"
+              className={`${inputClass} text-base`}
             />
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+          <div className="flex gap-2 bg-gray-100/80 dark:bg-white/5 p-1 rounded-xl border border-gray-200/60 dark:border-white/10">
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('kanban')}
-              className={viewMode === 'kanban' ? 'bg-white shadow-sm' : ''}
+              className={viewMode === 'kanban' ? 'bg-white dark:bg-white/10 shadow-sm' : ''}
             >
               <LayoutGrid className="w-4 h-4 mr-2" />
               Kanban
@@ -278,7 +291,7 @@ export default function TasksPage() {
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className={viewMode === 'list' ? 'bg-white shadow-sm' : ''}
+              className={viewMode === 'list' ? 'bg-white dark:bg-white/10 shadow-sm' : ''}
             >
               <LayoutList className="w-4 h-4 mr-2" />
               List
@@ -287,7 +300,7 @@ export default function TasksPage() {
         </div>
 
         {/* Priority Filters */}
-        <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200/60 dark:border-white/10">
           <Filter className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-700 mr-2">{t('common.edit')}</span>
           <div className="flex gap-2 flex-wrap">
@@ -300,7 +313,7 @@ export default function TasksPage() {
                 className={`capitalize ${
                   filter === f
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
-                    : 'hover:bg-gray-100'
+                    : 'hover:bg-gray-100 dark:hover:bg-white/5'
                 }`}
               >
                 {f === 'all' ? t('tasks.title') : f}
@@ -312,10 +325,37 @@ export default function TasksPage() {
 
       {/* Content Area */}
       {showLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader className="w-12 h-12 animate-spin text-blue-600 mb-4" />
-          <p className="text-gray-500">Loading your tasks...</p>
-        </div>
+        viewMode === 'kanban' ? (
+          <div className="flex gap-6 overflow-x-auto pb-4">
+            {[...Array(4)].map((_, colIdx) => (
+              <div key={colIdx} className="flex-1 min-w-[300px]">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-gray-200" />
+                  <div className="h-4 w-24 rounded bg-gray-200" />
+                </div>
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, idx) => (
+                    <Card key={idx} className="p-4 h-28 animate-pulse">
+                      <div className="h-4 w-24 rounded bg-gray-100" />
+                      <div className="mt-3 h-3 w-3/4 rounded bg-gray-100" />
+                      <div className="mt-6 h-3 w-1/2 rounded bg-gray-100" />
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[...Array(6)].map((_, idx) => (
+              <Card key={idx} className="p-5 animate-pulse">
+                <div className="h-4 w-1/3 rounded bg-gray-100" />
+                <div className="mt-3 h-3 w-2/3 rounded bg-gray-100" />
+                <div className="mt-4 h-3 w-1/2 rounded bg-gray-100" />
+              </Card>
+            ))}
+          </div>
+        )
       ) : filteredTasks && filteredTasks.length > 0 ? (
         viewMode === 'kanban' ? (
           /* Kanban View */
@@ -325,31 +365,35 @@ export default function TasksPage() {
               title={t('tasks.pending')}
               tasks={tasksByStatus.todo}
               color="bg-gray-400"
+              formatDate={formatDate}
             />
             <KanbanColumn
               status="in_progress"
               title={t('tasks.title')}
               tasks={tasksByStatus.in_progress}
               color="bg-blue-600"
+              formatDate={formatDate}
             />
             <KanbanColumn
               status="review"
               title={t('common.edit')}
               tasks={tasksByStatus.review}
               color="bg-amber-500"
+              formatDate={formatDate}
             />
             <KanbanColumn
               status="done"
               title={t('tasks.completed')}
               tasks={tasksByStatus.done}
               color="bg-green-600"
+              formatDate={formatDate}
             />
           </div>
         ) : (
           /* List View */
           <div className="space-y-3">
             {filteredTasks.map((task: any) => (
-              <Link key={task._id} href={`/projects/${task.projectId?._id}/tasks/${task._id}`}>
+              <Link key={task._id} href={`/tasks/${task._id}`}>
                 <Card className="p-5 hover:shadow-lg transition-all cursor-pointer border border-gray-200 hover:border-blue-300">
                   <div className="flex items-start gap-4">
                     <input
@@ -444,8 +488,8 @@ export default function TasksPage() {
           </h3>
           <p className="text-gray-600 mb-6">
             {searchTerm || filter !== 'all'
-              ? t('common.error')
-              : t('tasks.create')}
+              ? 'Try adjusting filters or clearing search.'
+              : 'Create your first task to kick off realtime tracking.'}
           </p>
           <Link href="/tasks/new">
             <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">

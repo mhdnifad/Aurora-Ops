@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { MEMBERSHIP_STATUS } from '../config/constants';
+import { MEMBERSHIP_STATUS, ORG_ROLES, LEGACY_ROLES } from '../config/constants';
 
 export interface IMembership extends Document {
   userId: mongoose.Types.ObjectId;
@@ -30,8 +30,11 @@ const MembershipSchema = new Schema<IMembership>(
     },
     role: {
       type: String,
-      enum: ['owner', 'admin', 'member', 'viewer'],
-      default: 'member',
+      enum: [
+        ...Object.values(ORG_ROLES),
+        ...Object.values(LEGACY_ROLES),
+      ],
+      default: ORG_ROLES.EMPLOYEE,
       required: true,
     },
     status: {

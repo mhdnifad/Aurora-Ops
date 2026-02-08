@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { apiClient } from '@/lib/api-client';
 import { useGetCurrentUser } from '@/lib/hooks';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter } from 'next/navigation';
+import { UserRole } from './roles';
 
 interface User {
   id: string;
@@ -13,7 +15,8 @@ interface User {
   avatar?: string;
   isActive: boolean;
   createdAt: string;
-  currentRole?: 'owner' | 'admin' | 'manager' | 'member' | 'guest';
+  currentRole?: UserRole;
+  systemRole?: 'admin' | 'user';
 }
 
 interface AuthContextType {
@@ -21,21 +24,23 @@ interface AuthContextType {
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   isLoading: boolean;
   isAuthenticated: boolean;
-  userRole: 'owner' | 'admin' | 'manager' | 'member' | 'guest' | null;
+  userRole: UserRole | null;
   login: (email: string, password: string) => Promise<void>;
   register: (firstName: string, lastName: string, email: string, password: string, passwordConfirm: string) => Promise<void>;
   logout: () => Promise<void>;
-  setUserRole: (role: 'owner' | 'admin' | 'manager' | 'member' | 'guest') => void;
+  setUserRole: (role: UserRole | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<'owner' | 'admin' | 'manager' | 'member' | 'guest' | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasTokens, setHasTokens] = useState(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Check if user has tokens on mount
   useEffect(() => {
@@ -49,28 +54,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkTokens();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleAuthTokens = (event: Event) => {
+      const customEvent = event as CustomEvent<{ hasTokens: boolean }>;
+      const hasTokensValue = !!customEvent.detail?.hasTokens;
+
+      setHasTokens(hasTokensValue);
+
+      if (!hasTokensValue) {
+        setUser(null);
+        setUserRole(null);
+        queryClient.clear();
+        setIsLoading(false);
+
+        if (!pathname?.startsWith('/login') && !pathname?.startsWith('/register') && !pathname?.startsWith('/reset-password')) {
+          router.replace('/login');
+        }
+      }
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== 'auth_tokens') {
+        return;
+      }
+
+      const hasTokensValue = !!event.newValue;
+      setHasTokens(hasTokensValue);
+
+      if (!hasTokensValue) {
+        setUser(null);
+        setUserRole(null);
+        queryClient.clear();
+        setIsLoading(false);
+
+        if (!pathname?.startsWith('/login') && !pathname?.startsWith('/register') && !pathname?.startsWith('/reset-password')) {
+          router.replace('/login');
+        }
+      }
+    };
+
+    window.addEventListener('auth:tokens', handleAuthTokens);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('auth:tokens', handleAuthTokens);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [pathname, queryClient, router]);
+
   const { data: currentUserData, isLoading: isFetching } = useGetCurrentUser({
     queryKey: ['currentUser'],
     retry: 1,
     enabled: hasTokens,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   } as any);
 
-  // Set user when currentUser data is fetched
+  // Set user when currentUser data is fetched - removed 'user' from dependencies to prevent infinite loops
   useEffect(() => {
     if ((currentUserData as any)?.user) {
       setUser((currentUserData as any).user);
-      // User data fetched successfully, stop loading
+      setIsLoading(false);
+    } else if (!isFetching && hasTokens) {
+      // Finished fetching but no user
+      setIsLoading(false);
+    } else if (!hasTokens) {
+      // No tokens, not loading
       setIsLoading(false);
     }
-    // Only keep loading if we have tokens and are still fetching AND user is not yet set
-    if (hasTokens && isFetching && !user) {
-      setIsLoading(true);
-    }
-    // If query finished but no user and we have tokens, still stop loading
-    if (hasTokens && !isFetching && !user) {
-      setIsLoading(false);
-    }
-  }, [currentUserData, isFetching, hasTokens, user]);
+  }, [currentUserData, isFetching, hasTokens]);
 
   const login = async (email: string, password: string) => {
     try {

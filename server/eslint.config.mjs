@@ -1,13 +1,17 @@
 // ESLint config for backend (server)
 import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
 });
 
 export default [
@@ -18,11 +22,14 @@ export default [
   {
     files: ["**/*.ts"],
     languageOptions: {
-      parser: "@typescript-eslint/parser",
+      parser: tsparser,
       parserOptions: {
         project: "./tsconfig.json",
         sourceType: "module",
       },
+    },
+    plugins: {
+      "@typescript-eslint": tseslint,
     },
     rules: {
       // Add or override rules here

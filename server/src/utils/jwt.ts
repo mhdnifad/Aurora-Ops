@@ -1,6 +1,7 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import config from '../config/env';
-import { v4 as uuidv4 } from 'uuid';
+import { AuthenticationError } from './errors';
 
 interface JwtPayload {
   userId: string;
@@ -17,11 +18,13 @@ export class JWTUtil {
    * Generate access token (short-lived)
    */
   public static generateAccessToken(payload: JwtPayload): string {
-    return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn as string,
+    const expiresIn = config.jwt.expiresIn as SignOptions['expiresIn'];
+    const options: SignOptions = {
+      expiresIn,
       issuer: 'aurora-ops',
       audience: 'aurora-ops-api',
-    } as any);
+    };
+    return jwt.sign(payload, config.jwt.secret, options);
   }
 
   /**
@@ -31,15 +34,17 @@ export class JWTUtil {
     token: string;
     tokenId: string;
   } {
-    const tokenId = uuidv4();
+    const tokenId = randomUUID();
+    const expiresIn = config.jwt.refreshExpiresIn as SignOptions['expiresIn'];
+    const options: SignOptions = {
+      expiresIn,
+      issuer: 'aurora-ops',
+      audience: 'aurora-ops-api',
+    };
     const token = jwt.sign(
       { ...payload, tokenId },
       config.jwt.refreshSecret,
-      {
-        expiresIn: config.jwt.refreshExpiresIn as string,
-        issuer: 'aurora-ops',
-        audience: 'aurora-ops-api',
-      } as any
+      options
     );
     return { token, tokenId };
   }
@@ -56,12 +61,12 @@ export class JWTUtil {
       return decoded;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new Error('Access token expired');
+        throw new AuthenticationError('Access token expired');
       }
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new Error('Invalid access token');
+        throw new AuthenticationError('Invalid access token');
       }
-      throw error;
+      throw new AuthenticationError('Invalid access token');
     }
   }
 
@@ -77,19 +82,19 @@ export class JWTUtil {
       return decoded;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new Error('Refresh token expired');
+        throw new AuthenticationError('Refresh token expired');
       }
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new Error('Invalid refresh token');
+        throw new AuthenticationError('Invalid refresh token');
       }
-      throw error;
+      throw new AuthenticationError('Invalid refresh token');
     }
   }
 
   /**
    * Decode token without verification (for debugging)
    */
-  public static decodeToken(token: string): any {
+  public static decodeToken(token: string): unknown {
     return jwt.decode(token);
   }
 
@@ -97,7 +102,7 @@ export class JWTUtil {
    * Get token expiration time
    */
   public static getTokenExpiration(token: string): Date | null {
-    const decoded = jwt.decode(token) as any;
+    const decoded = jwt.decode(token) as { exp?: number } | null;
     if (decoded && decoded.exp) {
       return new Date(decoded.exp * 1000);
     }

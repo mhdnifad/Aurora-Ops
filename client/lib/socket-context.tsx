@@ -42,6 +42,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     // If socket already exists for this org and is connected, keep it
     const activeOrgId = (socketRef.current as any)?.io?.opts?.auth?.organizationId;
     if (socketRef.current?.connected && activeOrgId === orgId) {
+      // Socket already connected for this org, don't recreate
+      return;
+    }
+    
+    // If socket exists but not yet connected for this org, wait a bit
+    if (socketRef.current && !socketRef.current.connected && activeOrgId === orgId) {
       return;
     }
 
@@ -73,19 +79,33 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Use explicit socket URL for Nginx proxy (http://localhost/socket.io)
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost';
+    const resolveSocketUrl = () => {
+      if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+        return process.env.NEXT_PUBLIC_SOCKET_URL;
+      }
+      if (typeof window !== 'undefined') {
+        if (window.location.port === '3000') {
+          return 'http://localhost:5000';
+        }
+        return window.location.origin;
+      }
+      return 'http://localhost:5000';
+    };
+
+    const socketUrl = resolveSocketUrl();
     const newSocket = io(socketUrl, {
       path: '/socket.io',
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
       auth: {
         token: accessToken,
         organizationId: orgId,
       },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 500,
-      reconnectionDelayMax: 5000,
+      transports: ['polling'],
+      upgrade: false,
       autoConnect: true,
       withCredentials: true,
     });

@@ -5,13 +5,14 @@ import { validateEmail, getEmailError } from '@/lib/validations';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { BackButton } from '@/components/ui/back-button';
 import { toast } from 'sonner';
 import { ArrowRight, Loader, Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
+import { ColorBendsSurface } from '@/components/ui/color-bends-surface';
+import { FloatingLinesSurface } from '@/components/ui/floating-lines-surface';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,6 +25,8 @@ export default function LoginPage() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+  const inputClass = 'pl-11 h-12 backdrop-blur-sm bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400';
+  const canSubmit = validateEmail(email) && password.length >= 8 && !isLoading;
 
   // Detect session expired redirect
   useEffect(() => {
@@ -80,13 +83,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950 px-4 py-12">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-pink-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
-      </div>
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-gray-950 dark:via-gray-900 dark:to-emerald-950 px-4 py-12">
+      <ColorBendsSurface className="opacity-50" />
+      <FloatingLinesSurface className="opacity-30" />
 
       <Card className="w-full max-w-md p-8 backdrop-blur-xl bg-white/10 dark:bg-white/5 border-white/20 dark:border-white/10 shadow-2xl animate-fadeIn">
         {/* Back Button */}
@@ -103,12 +102,16 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-2">Sign in to continue to Aurora Ops</p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Live secure login
+          </div>
         </div>
 
         {sessionExpired && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-2 items-center">
+          <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex gap-2 items-center">
             <AlertCircle className="w-5 h-5 text-yellow-600" />
-            <span className="text-yellow-800">Your session has expired. Please log in again.</span>
+            <span className="text-yellow-800 dark:text-yellow-200">Your session has expired. Please log in again.</span>
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -130,8 +133,9 @@ export default function LoginPage() {
                 onBlur={() => setEmailTouched(true)}
                 placeholder="you@example.com"
                 disabled={isLoading}
-                className={`pl-11 h-12 ${emailTouched && !validateEmail(email) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                className={`${inputClass} ${emailTouched && !validateEmail(email) ? 'border-red-500 focus:ring-red-500' : ''}`}
                 autoComplete="email"
+                aria-invalid={emailTouched && !validateEmail(email)}
               />
               {emailTouched && !validateEmail(email) && (
                 <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
@@ -173,8 +177,9 @@ export default function LoginPage() {
                 onBlur={() => setPasswordTouched(true)}
                 placeholder="••••••••"
                 disabled={isLoading}
-                className={`pl-11 pr-11 h-12 ${passwordTouched && (password.length < 8 || !password) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                className={`${inputClass} pr-11 ${passwordTouched && (password.length < 8 || !password) ? 'border-red-500 focus:ring-red-500' : ''}`}
                 autoComplete="current-password"
+                aria-invalid={passwordTouched && (password.length < 8 || !password)}
               />
               {passwordTouched && (password.length < 8 || !password) && (
                 <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
@@ -205,7 +210,7 @@ export default function LoginPage() {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={isLoading || !validateEmail(email) || password.length < 8}
+            disabled={!canSubmit}
             className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
           >
             {isLoading ? (
@@ -220,15 +225,18 @@ export default function LoginPage() {
               </>
             )}
           </Button>
+          <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+            By continuing you agree to our Terms and Privacy Policy.
+          </p>
         </form>
 
         {/* Divider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
+            <div className="w-full border-t border-gray-200/70 dark:border-white/10"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500">New to Aurora Ops?</span>
+            <span className="px-4 bg-white/80 dark:bg-gray-900/80 text-gray-500">New to Aurora Ops?</span>
           </div>
         </div>
 
@@ -236,7 +244,7 @@ export default function LoginPage() {
         <Link href="/register">
           <Button
             variant="outline"
-            className="w-full h-12 border-2 border-gray-200 hover:border-blue-600 hover:text-blue-600 font-semibold transition-all duration-200"
+            className="w-full h-12 border-2 border-gray-200/70 dark:border-white/10 hover:border-blue-600 hover:text-blue-600 font-semibold transition-all duration-200"
           >
             Create an account
           </Button>

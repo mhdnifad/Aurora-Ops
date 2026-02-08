@@ -1,4 +1,4 @@
-# Stage 1: Build
+# Multi-stage build for Node.js backend
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -6,44 +6,43 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including devDependencies for build)
-RUN npm install --legacy-peer-deps
+# Install dependencies (include dev deps for build tools)
+RUN npm ci
 
-# Copy source
+# Copy source code
 COPY . .
 
 # Build TypeScript
 RUN npm run build
 
-# Stage 2: Production
+# Production stage
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
-# Install production dependencies only
-RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
+# Create writable uploads directory
+RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app/uploads
 
-# Create logs directory
-RUN mkdir -p logs
+# Copy built application
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
-# Non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
-RUN chown -R nodejs:nodejs /app
+# Switch to non-root user
 USER nodejs
 
 # Expose port
 EXPOSE 5000
 
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
 
-# Health check (less aggressive)
-HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=5 \
-  CMD node -e "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Debug: print env, working directory, user, permissions, and Node version before starting
-CMD ["sh", "-c", "echo '== DEBUG INFO ==' && whoami && pwd && ls -l /app/dist && node -v && printenv && echo '== STARTING SERVER ==' && node dist/server.js"]
+# Start application
+CMD ["node", "dist/server.js"]

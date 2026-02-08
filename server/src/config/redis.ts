@@ -26,7 +26,7 @@ class RedisClient {
         },
       });
 
-      this.client.on('error', (_error) => {
+      this.client.on('error', () => {
         if (this.connectionAttempts === 0) {
           logger.warn('⚠️  Redis connection failed. Server will run without Redis caching.');
         }
@@ -44,7 +44,7 @@ class RedisClient {
         logger.warn('Redis disconnected');
         this.isConnected = false;
       });
-    } catch (error) {
+    } catch {
       logger.warn('⚠️  Redis initialization failed. Running without Redis.');
       this.isEnabled = false;
     }
@@ -67,7 +67,7 @@ class RedisClient {
       try {
         await this.client.connect();
         this.isEnabled = true;
-      } catch (error) {
+      } catch {
         logger.warn('⚠️  Redis connection failed. Server will continue without Redis.');
         this.isEnabled = false;
       }
@@ -90,7 +90,7 @@ class RedisClient {
   }
 
   // Session management
-  public async setSession(sessionId: string, data: any, expirySeconds: number = 604800): Promise<void> {
+  public async setSession(sessionId: string, data: unknown, expirySeconds: number = 604800): Promise<void> {
     if (!this.getIsEnabled() || !this.client) return;
     try {
       await this.client.setEx(`session:${sessionId}`, expirySeconds, JSON.stringify(data));
@@ -99,7 +99,7 @@ class RedisClient {
     }
   }
 
-  public async getSession(sessionId: string): Promise<any> {
+  public async getSession(sessionId: string): Promise<unknown> {
     if (!this.getIsEnabled() || !this.client) return null;
     try {
       const data = await this.client.get(`session:${sessionId}`);
@@ -120,7 +120,7 @@ class RedisClient {
   }
 
   // Cache management
-  public async setCache(key: string, data: any, expirySeconds: number = 3600): Promise<void> {
+  public async setCache(key: string, data: unknown, expirySeconds: number = 3600): Promise<void> {
     if (!this.getIsEnabled() || !this.client) return;
     try {
       await this.client.setEx(`cache:${key}`, expirySeconds, JSON.stringify(data));
@@ -129,7 +129,7 @@ class RedisClient {
     }
   }
 
-  public async getCache(key: string): Promise<any> {
+  public async getCache(key: string): Promise<unknown> {
     if (!this.getIsEnabled() || !this.client) return null;
     try {
       const data = await this.client.get(`cache:${key}`);

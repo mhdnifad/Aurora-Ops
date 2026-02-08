@@ -24,6 +24,15 @@ interface Config {
     proPriceId: string;
     enterprisePriceId: string;
   };
+  openai?: {
+    apiKey: string;
+    model?: string;
+  };
+  cloudinary?: {
+    cloudName: string;
+    apiKey: string;
+    apiSecret: string;
+  };
   email: {
     smtp: {
       host: string;
@@ -61,6 +70,15 @@ const config: Config = {
     proPriceId: process.env.STRIPE_PRO_PRICE_ID || '',
     enterprisePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || '',
   },
+  openai: process.env.OPENAI_API_KEY ? {
+    apiKey: process.env.OPENAI_API_KEY,
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  } : undefined,
+  cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+  } : undefined,
   email: {
     smtp: {
       host: process.env.SMTP_HOST || 'smtp.sendgrid.net',

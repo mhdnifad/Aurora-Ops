@@ -1,7 +1,6 @@
 import { useAuth } from './auth-context';
 import { useOrganization } from './organization-context';
-
-export type UserRole = 'owner' | 'admin' | 'manager' | 'member' | 'guest';
+import { UserRole } from './roles';
 
 export interface RolePermissions {
   canManageOrganization: boolean;
@@ -22,7 +21,7 @@ export interface RolePermissions {
 }
 
 const rolePermissionsMap: Record<UserRole, RolePermissions> = {
-  owner: {
+  super_admin: {
     canManageOrganization: true,
     canDeleteOrganization: true,
     canManageMembers: true,
@@ -39,9 +38,9 @@ const rolePermissionsMap: Record<UserRole, RolePermissions> = {
     canViewAnalytics: true,
     canUseAI: true,
   },
-  admin: {
+  company_admin: {
     canManageOrganization: true,
-    canDeleteOrganization: false,
+    canDeleteOrganization: true,
     canManageMembers: true,
     canViewBilling: true,
     canManageBilling: true,
@@ -73,7 +72,7 @@ const rolePermissionsMap: Record<UserRole, RolePermissions> = {
     canViewAnalytics: true,
     canUseAI: true,
   },
-  member: {
+  employee: {
     canManageOrganization: false,
     canDeleteOrganization: false,
     canManageMembers: false,
@@ -90,7 +89,7 @@ const rolePermissionsMap: Record<UserRole, RolePermissions> = {
     canViewAnalytics: false,
     canUseAI: false,
   },
-  guest: {
+  client: {
     canManageOrganization: false,
     canDeleteOrganization: false,
     canManageMembers: false,
@@ -117,7 +116,7 @@ export function usePermissions(): RolePermissions & { role: UserRole | null; isL
     return {
       role: null,
       isLoading,
-      ...rolePermissionsMap.guest,
+      ...rolePermissionsMap.client,
     };
   }
 

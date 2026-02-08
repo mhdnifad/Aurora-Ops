@@ -4,7 +4,7 @@ export interface IActivity extends Document {
   user: mongoose.Types.ObjectId;
   action: string;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   deletedAt?: Date;
 }

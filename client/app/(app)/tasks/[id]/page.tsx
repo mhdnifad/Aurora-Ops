@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFormatDate } from '@/lib/utils';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,6 +13,7 @@ import { apiClient } from '@/lib/api-client';
 import { ArrowLeft, Loader, AlertCircle, Trash2, Save, MessageCircle, Clock, User, Flag, Paperclip, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrganization } from '@/lib/organization-context';
+import { useTypingPresence } from '@/lib/socket-hooks-enhanced';
 
 export default function TaskDetailPage() {
   const formatDate = useFormatDate();
@@ -20,6 +21,7 @@ export default function TaskDetailPage() {
   const router = useRouter();
   const taskId = params.id as string;
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
+  const inputClass = 'h-11 bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10';
 
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +29,7 @@ export default function TaskDetailPage() {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [uploadsEnabled, setUploadsEnabled] = useState(true);
 
   // Only fetch task if org is loaded and set
   const enabled = !!currentOrganization?._id;
@@ -34,6 +37,12 @@ export default function TaskDetailPage() {
   const { data: comments, isLoading: commentsLoading, refetch: refetchComments } = useGetTaskComments(taskId, 1, 50, { enabled });
   const updateTaskMutation = useUpdateTask();
   const deleteTaskMutation = useDeleteTask();
+  const typingTimeoutRef = useRef<number | null>(null);
+
+  const projectId = useMemo(() => {
+    return (task as any)?.projectId?._id || (task as any)?.projectId || '';
+  }, [task]);
+  const { typingUsers, emitTyping, emitStopTyping } = useTypingPresence(taskId, projectId);
 
   const [editData, setEditData] = useState({
     title: (task as any)?.title || '',
@@ -54,6 +63,32 @@ export default function TaskDetailPage() {
       });
     }
   }, [task]);
+
+  useEffect(() => {
+    let isActive = true;
+    apiClient
+      .getPlatformStatus()
+      .then((status) => {
+        if (!isActive) return;
+        const enabled = !!status?.uploads?.enabled;
+        setUploadsEnabled(enabled);
+      })
+      .catch(() => {
+        if (isActive) setUploadsEnabled(true);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        window.clearTimeout(typingTimeoutRef.current);
+      }
+      emitStopTyping();
+    };
+  }, [emitStopTyping]);
 
   const handleUpdate = async () => {
     try {
@@ -95,6 +130,7 @@ export default function TaskDetailPage() {
     try {
       await apiClient.createComment(taskId, commentText);
       setCommentText('');
+      emitStopTyping();
       refetchComments();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to add comment');
@@ -107,15 +143,25 @@ export default function TaskDetailPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-500">Loading organization...</span>
+        <span className="ml-2 text-gray-500 dark:text-gray-400">Loading organization...</span>
       </div>
     );
   }
 
   if (taskLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="space-y-6">
+        <div className="h-8 w-64 rounded bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md animate-pulse lg:col-span-2">
+            <div className="h-4 w-40 rounded bg-gray-100/80 dark:bg-gray-800/60" />
+            <div className="mt-4 h-24 rounded bg-gray-100/80 dark:bg-gray-800/60" />
+          </Card>
+          <Card className="p-4 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md animate-pulse">
+            <div className="h-4 w-24 rounded bg-gray-100/80 dark:bg-gray-800/60" />
+            <div className="mt-4 h-4 w-32 rounded bg-gray-100/80 dark:bg-gray-800/60" />
+          </Card>
+        </div>
       </div>
     );
   }
@@ -123,7 +169,7 @@ export default function TaskDetailPage() {
   if (!task) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Task not found</p>
+        <p className="text-gray-600 dark:text-gray-400">Task not found</p>
         <Link href="/tasks">
           <Button className="mt-4">Back to Tasks</Button>
         </Link>
@@ -137,23 +183,32 @@ export default function TaskDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/tasks">
-            <Button variant="outline" size="sm" className="border-gray-300">
+            <Button variant="outline" size="sm" className="border-gray-200/70 dark:border-white/10">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{(task as any)?.title}</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{(task as any)?.title}</h1>
+            {(task as any)?.projectId?.name && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{(task as any)?.projectId?.name}</p>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Realtime comments
+          </div>
           {!isEditing && (
             <>
               <Button
                 variant="outline"
                 onClick={() => setIsEditing(true)}
-                className="border-gray-300"
+                className="border-gray-200/70 dark:border-white/10"
               >
                 Edit
               </Button>
@@ -166,9 +221,9 @@ export default function TaskDetailPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-          <p className="text-red-700">{error}</p>
+          <p className="text-red-700 dark:text-red-300">{error}</p>
         </div>
       )}
 
@@ -176,35 +231,37 @@ export default function TaskDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Details Card */}
-          <Card className="p-6">
+          <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
             {isEditing ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Title</label>
                   <Input
                     value={editData.title}
                     onChange={(e) => setEditData({ ...editData, title: e.target.value })}
                     placeholder="Task title"
+                    className={inputClass}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
                   <Textarea
                     value={editData.description}
                     onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                     placeholder="Task description"
                     rows={5}
+                    className="bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status</label>
                     <select
                       value={editData.status}
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-200/60 dark:border-white/10 rounded-lg bg-white/80 dark:bg-white/5"
                     >
                       <option value="todo">To Do</option>
                       <option value="in_progress">In Progress</option>
@@ -213,11 +270,11 @@ export default function TaskDetailPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Priority</label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Priority</label>
                     <select
                       value={editData.priority}
                       onChange={(e) => setEditData({ ...editData, priority: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-200/60 dark:border-white/10 rounded-lg bg-white/80 dark:bg-white/5"
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -228,15 +285,16 @@ export default function TaskDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Due Date</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Due Date</label>
                   <Input
                     type="date"
                     value={editData.dueDate}
                     onChange={(e) => setEditData({ ...editData, dueDate: e.target.value })}
+                    className={inputClass}
                   />
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t">
+                <div className="flex gap-2 pt-4 border-t border-white/20 dark:border-white/10">
                   <Button onClick={handleUpdate} disabled={updateTaskMutation.isPending}>
                     <Save className="w-4 h-4 mr-2" />
                     Save Changes
@@ -250,8 +308,8 @@ export default function TaskDetailPage() {
               <div className="space-y-4">
                 {(task as any)?.description && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Description</h3>
-                    <p className="text-gray-600 whitespace-pre-wrap">{(task as any)?.description}</p>
+                    <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">Description</h3>
+                    <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{(task as any)?.description}</p>
                   </div>
                 )}
 
@@ -262,19 +320,19 @@ export default function TaskDetailPage() {
                     Attachments ({attachmentsList.length})
                   </h3>
                   {attachmentsList.length === 0 ? (
-                    <p className="text-gray-500">No attachments yet</p>
+                    <p className="text-gray-500 dark:text-gray-400">No attachments yet</p>
                   ) : (
                     <ul className="space-y-2">
                       {attachmentsList.map((att: any) => (
-                        <li key={att._id || att.url} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <li key={att._id || att.url} className="flex items-center justify-between p-2 bg-white/70 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded">
                           <div className="flex items-center gap-2">
-                            <Paperclip className="w-4 h-4 text-gray-600" />
+                            <Paperclip className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                             <a href={att.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
                               {att.name}
                             </a>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-xs text-gray-500">{Math.round((att.size || 0) / 1024)} KB</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{Math.round((att.size || 0) / 1024)} KB</span>
                             <Button
                               variant="outline"
                               size="sm"
@@ -307,12 +365,18 @@ export default function TaskDetailPage() {
                         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
                         onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
                         className="text-sm"
+                        disabled={!uploadsEnabled}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Max 10MB. Allowed: JPG, PNG, WEBP, GIF, PDF, DOC/DOCX, XLS/XLSX, CSV, TXT, ZIP</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {uploadsEnabled
+                          ? 'Max 10MB. Allowed: JPG, PNG, WEBP, GIF, PDF, DOC/DOCX, XLS/XLSX, CSV, TXT, ZIP'
+                          : 'File uploads are currently disabled.'}
+                      </p>
                     </div>
                     <Button
-                      disabled={!attachmentFile || isUploadingAttachment}
+                      disabled={!uploadsEnabled || !attachmentFile || isUploadingAttachment}
                       onClick={async () => {
+                        if (!uploadsEnabled) return;
                         if (!attachmentFile) return;
                         if (attachmentFile.size > 10 * 1024 * 1024) {
                           const msg = 'File too large (max 10MB)';
@@ -369,7 +433,7 @@ export default function TaskDetailPage() {
           </Card>
 
           {/* Comments Section */}
-          <Card className="p-6">
+          <Card className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
               Comments ({commentsList.length})
@@ -378,11 +442,26 @@ export default function TaskDetailPage() {
             <form onSubmit={handleAddComment} className="mb-6">
               <Textarea
                 value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
+                onChange={(e) => {
+                  setCommentText(e.target.value);
+                  emitTyping();
+                  if (typingTimeoutRef.current) {
+                    window.clearTimeout(typingTimeoutRef.current);
+                  }
+                  typingTimeoutRef.current = window.setTimeout(() => {
+                    emitStopTyping();
+                  }, 1200);
+                }}
                 placeholder="Add a comment..."
                 rows={3}
                 disabled={isSubmittingComment}
+                className="bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10"
               />
+              {typingUsers.length > 0 && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {typingUsers.length === 1 ? 'Someone is typing...' : `${typingUsers.length} people are typing...`}
+                </p>
+              )}
               <Button
                 type="submit"
                 disabled={!commentText.trim() || isSubmittingComment}
@@ -399,26 +478,26 @@ export default function TaskDetailPage() {
                   <Loader className="w-5 h-5 animate-spin mx-auto text-gray-400" />
                 </div>
               ) : commentsList.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No comments yet</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">No comments yet</p>
               ) : (
                 commentsList.map((comment: any) => (
-                  <div key={comment._id} className="p-4 bg-gray-50 rounded-lg">
+                  <div key={comment._id} className="p-4 bg-white/80 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-lg">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-semibold text-blue-600">
+                        <div className="w-8 h-8 bg-blue-100/80 dark:bg-blue-500/20 rounded-full flex items-center justify-center text-sm font-semibold text-blue-600 dark:text-blue-300">
                           {comment.createdBy?.firstName?.[0] || 'U'}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white">
                             {comment.createdBy?.firstName} {comment.createdBy?.lastName}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatDate(comment.createdAt)}
                           </p>
                         </div>
                       </div>
                     </div>
-                    <p className="text-gray-700 text-sm">{comment.content}</p>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">{comment.content}</p>
                   </div>
                 ))
               )}
@@ -428,22 +507,22 @@ export default function TaskDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-4">
-          <Card className="p-4">
-            <h4 className="font-semibold mb-4 text-gray-900">Details</h4>
+          <Card className="p-4 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
+            <h4 className="font-semibold mb-4 text-gray-900 dark:text-white">Details</h4>
 
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-semibold text-gray-600 uppercase">Status</p>
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Status</p>
                 <div className="mt-1">
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
                       (task as any)?.status === 'done'
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-300'
                         : (task as any)?.status === 'in_progress'
-                        ? 'bg-blue-100 text-blue-800'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300'
                         : (task as any)?.status === 'review'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-300'
                     }`}
                   >
                     {(task as any)?.status === 'in_progress' ? 'In Progress' : (task as any)?.status.charAt(0).toUpperCase() + (task as any)?.status.slice(1)}
@@ -452,20 +531,20 @@ export default function TaskDetailPage() {
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-2">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
                   <Flag className="w-4 h-4" />
                   Priority
                 </p>
-                <p className="text-sm text-gray-700 mt-1 capitalize">{(task as any)?.priority}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 capitalize">{(task as any)?.priority}</p>
               </div>
 
               {(task as any)?.dueDate && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-2">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     Due Date
                   </p>
-                  <p className="text-sm text-gray-700 mt-1">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                     {formatDate((task as any).dueDate)}
                   </p>
                 </div>
@@ -473,11 +552,11 @@ export default function TaskDetailPage() {
 
               {(task as any)?.assigneeId && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-2">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Assigned To
                   </p>
-                  <p className="text-sm text-gray-700 mt-1">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                     {(task as any)?.assigneeId?.firstName} {(task as any)?.assigneeId?.lastName}
                   </p>
                 </div>
@@ -485,13 +564,13 @@ export default function TaskDetailPage() {
 
               {(task as any)?.projectId && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 uppercase">Project</p>
-                  <p className="text-sm text-gray-700 mt-1">{(task as any)?.projectId?.name}</p>
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Project</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{(task as any)?.projectId?.name}</p>
                 </div>
               )}
 
-              <div className="pt-2 border-t">
-                <p className="text-xs text-gray-500">
+              <div className="pt-2 border-t border-white/20 dark:border-white/10">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Created {formatDate((task as any)?.createdAt)}
                 </p>
               </div>

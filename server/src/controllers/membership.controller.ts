@@ -1,10 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import Membership from '../models/Membership';
+import { normalizeOrgRole } from '../utils/roles';
 import { AppError } from '../utils/errors';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
-export const getUserRole = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserRole = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user?._id;
+    const userId = req.user!._id;
     const organizationId = req.headers['x-organization-id'] as string;
 
     if (!organizationId) {
@@ -15,6 +17,7 @@ export const getUserRole = async (req: Request, res: Response, next: NextFunctio
       userId,
       organizationId,
       status: 'active',
+      deletedAt: null,
     });
 
     if (!membership) {
@@ -24,7 +27,7 @@ export const getUserRole = async (req: Request, res: Response, next: NextFunctio
     res.status(200).json({
       success: true,
       data: {
-        role: membership.role,
+        role: normalizeOrgRole(membership.role) || membership.role,
         organizationId: membership.organizationId,
         userId: membership.userId,
       },
@@ -33,3 +36,4 @@ export const getUserRole = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+

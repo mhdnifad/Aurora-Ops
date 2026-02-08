@@ -17,6 +17,9 @@ export const translations: Record<string, Record<string, string>> = {
     'projects.title': 'Projects',
     'projects.create': 'Create Project',
     'projects.empty': 'No projects yet',
+
+    // Organizations
+    'organizations.create': 'New Organization',
     
     // Tasks
     'tasks.title': 'Tasks',
@@ -59,6 +62,8 @@ export const translations: Record<string, Record<string, string>> = {
     'projects.title': 'Proyectos',
     'projects.create': 'Crear Proyecto',
     'projects.empty': 'Sin proyectos aún',
+
+    'organizations.create': 'Nueva Organizacion',
     
     'tasks.title': 'Tareas',
     'tasks.create': 'Crear Tarea',
@@ -98,6 +103,8 @@ export const translations: Record<string, Record<string, string>> = {
     'projects.title': 'Projets',
     'projects.create': 'Créer un Projet',
     'projects.empty': 'Aucun projet pour le moment',
+
+    'organizations.create': 'Nouvelle Organisation',
     
     'tasks.title': 'Tâches',
     'tasks.create': 'Créer une Tâche',
@@ -137,6 +144,8 @@ export const translations: Record<string, Record<string, string>> = {
     'projects.title': 'Projekte',
     'projects.create': 'Projekt Erstellen',
     'projects.empty': 'Noch keine Projekte',
+
+    'organizations.create': 'Neue Organisation',
     
     'tasks.title': 'Aufgaben',
     'tasks.create': 'Aufgabe Erstellen',
@@ -176,6 +185,8 @@ export const translations: Record<string, Record<string, string>> = {
     'projects.title': '项目',
     'projects.create': '创建项目',
     'projects.empty': '尚无项目',
+
+    'organizations.create': '新建组织',
     
     'tasks.title': '任务',
     'tasks.create': '创建任务',
@@ -215,6 +226,8 @@ export const translations: Record<string, Record<string, string>> = {
     'projects.title': 'プロジェクト',
     'projects.create': 'プロジェクトを作成',
     'projects.empty': 'プロジェクトがまだありません',
+
+    'organizations.create': '新しい組織',
     
     'tasks.title': 'タスク',
     'tasks.create': 'タスクを作成',

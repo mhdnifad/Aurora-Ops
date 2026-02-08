@@ -23,6 +23,7 @@ export default function OrganizationSettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState('');
+  const inputClass = 'h-11 bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10';
 
   useEffect(() => {
     if (currentOrganization?._id) {
@@ -104,25 +105,31 @@ export default function OrganizationSettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-3xl space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/settings">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Organization settings</h1>
-          <p className="text-gray-600 mt-1">Manage your organization details</p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/settings">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Organization settings</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your organization details</p>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Workspace profile
         </div>
       </div>
 
       {/* Form */}
-      <Card className="p-8">
+      <Card className="p-8 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -135,7 +142,7 @@ export default function OrganizationSettingsPage() {
               value={selectedOrgId}
               onChange={handleOrgChange}
               disabled={isFetching || isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-200/60 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 dark:bg-white/5 dark:text-gray-100"
             >
               <option value="">Select an organization</option>
               {organizations?.map((org: any) => (
@@ -147,13 +154,15 @@ export default function OrganizationSettingsPage() {
           </div>
 
           {isFetching ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader className="w-6 h-6 animate-spin text-blue-600" />
+            <div className="space-y-4 py-4">
+              <div className="h-11 rounded bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+              <div className="h-11 rounded bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+              <div className="h-10 w-32 rounded bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
             </div>
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium mb-2">Organization name *</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Organization name *</label>
                 <Input
                   type="text"
                   name="name"
@@ -163,11 +172,12 @@ export default function OrganizationSettingsPage() {
                   autoComplete="off"
                   disabled={isLoading}
                   required
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Description</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Description</label>
                 <Input
                   type="text"
                   name="description"
@@ -176,14 +186,15 @@ export default function OrganizationSettingsPage() {
                   placeholder="Organization description"
                   autoComplete="off"
                   disabled={isLoading}
+                  className={inputClass}
                 />
               </div>
 
-              <div className="flex items-center gap-4 pt-6 border-t">
+              <div className="flex items-center gap-4 pt-6 border-t border-gray-200/70 dark:border-white/10">
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 >
                   {isLoading ? (
                     <>

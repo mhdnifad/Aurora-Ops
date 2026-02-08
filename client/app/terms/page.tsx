@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 
 export default function TermsPage() {
+  const updatedAt = 'February 7, 2026';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950">
       {/* Animated background elements */}
@@ -40,27 +42,46 @@ export default function TermsPage() {
         <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           Terms of Service
         </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-300">
-          Last updated: January 16, 2026
-        </p>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Live legal updates
+          </span>
+          <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1">
+            Last updated: {updatedAt}
+          </span>
+        </div>
       </div>
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 pb-20 space-y-6">
-        <Card className="p-8 space-y-6 backdrop-blur-xl bg-white/10 dark:bg-white/5">
+        <Card className="p-8 space-y-8 backdrop-blur-xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10">
+          <section className="grid gap-4 md:grid-cols-3">
+            {[
+              { label: 'Coverage', value: 'Platform access' },
+              { label: 'Billing', value: 'Subscription terms' },
+              { label: 'Support', value: 'support@auroraops.com' },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-white/20 bg-white/5 px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{item.label}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.value}</p>
+              </div>
+            ))}
+          </section>
+
           <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">1. Acceptance of Terms</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">1. Acceptance of Terms</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               By accessing and using Aurora Ops, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
             </p>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">2. Use License</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">2. Use License</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               Permission is granted to temporarily download one copy of the materials (information or software) on Aurora Ops for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
             </p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700">
+            <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
               <li>Modifying or copying the materials</li>
               <li>Using the materials for any commercial purpose or for any public display</li>
               <li>Attempting to decompile or reverse engineer any software contained on the site</li>
@@ -69,51 +90,51 @@ export default function TermsPage() {
             </ul>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">3. Disclaimer</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">3. Disclaimer</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               The materials on Aurora Ops are provided on an 'as is' basis. Aurora Ops makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
             </p>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">4. Limitations</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">4. Limitations</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               In no event shall Aurora Ops or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on Aurora Ops.
             </p>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">5. Accuracy of Materials</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">5. Accuracy of Materials</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               The materials appearing on Aurora Ops could include technical, typographical, or photographic errors. Aurora Ops does not warrant that any of the materials on its website are accurate, complete, or current. Aurora Ops may make changes to the materials contained on its website at any time without notice.
             </p>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">6. Links</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">6. Links</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               Aurora Ops has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site. The inclusion of any link does not imply endorsement by Aurora Ops of the site. Use of any such linked website is at the user's own risk.
             </p>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">7. Modifications</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">7. Modifications</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               Aurora Ops may revise these terms of service for its website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service.
             </p>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">8. Governing Law</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">8. Governing Law</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               These terms and conditions are governed by and construed in accordance with the laws of your jurisdiction, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.
             </p>
           </section>
 
-          <section className="space-y-4 pt-6 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">Contact Us</h2>
-            <p className="text-gray-700 leading-relaxed">
+          <section className="space-y-4 pt-6 border-t border-white/10">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Contact Us</h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               If you have any questions about these Terms of Service, please contact us at support@auroraops.com
             </p>
           </section>
@@ -122,12 +143,12 @@ export default function TermsPage() {
         {/* CTA */}
         <div className="flex gap-4 justify-center pt-8">
           <Link href="/">
-            <Button variant="outline" className="border-gray-300 hover:bg-gray-100">
+            <Button variant="outline" className="border-white/30 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-white/10">
               Back Home
             </Button>
           </Link>
           <Link href="/pricing">
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl">
               View Pricing
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -136,9 +157,9 @@ export default function TermsPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white mt-16">
-        <div className="max-w-7xl mx-auto px-6 py-12 text-center text-gray-600">
-          <p>&copy; 2024 Aurora Ops. All rights reserved.</p>
+      <footer className="border-t border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur mt-16">
+        <div className="max-w-7xl mx-auto px-6 py-12 text-center text-gray-600 dark:text-gray-400">
+          <p>&copy; 2026 Aurora Ops. All rights reserved.</p>
         </div>
       </footer>
     </div>

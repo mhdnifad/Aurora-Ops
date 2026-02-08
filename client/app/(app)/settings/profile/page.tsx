@@ -22,39 +22,8 @@ export default function ProfileSettings() {
   const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
-    const updateUserProfileMutation = useUpdateUserProfile({
-      onSuccess: async () => {
-        // Upload avatar if selected
-        let avatarUrl = user?.avatar;
-        if (avatar) {
-          const avatarRes = await apiClient.uploadUserAvatar(avatar);
-          avatarUrl = avatarRes?.avatar || avatarUrl;
-        }
-        if (user) {
-          setUser({
-            id: user.id,
-            email: user.email,
-            isActive: user.isActive,
-            createdAt: user.createdAt,
-            currentRole: user.currentRole,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            avatar: avatarUrl,
-          });
-        }
-        await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-        await queryClient.refetchQueries({ queryKey: ['currentUser'] });
-        toast.success('Profile updated successfully');
-        setAvatar(null);
-      },
-      onError: (error: any) => {
-        console.error('Failed to update profile:', error);
-        toast.error(error?.response?.data?.message || 'Failed to update profile');
-      },
-      onSettled: () => {
-        setIsSaving(false);
-      },
-    });
+  const inputClass =
+    'h-11 bg-white/70 dark:bg-slate-900/70 border-white/30 dark:border-white/10 focus-visible:ring-emerald-500/40';
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -64,7 +33,6 @@ export default function ProfileSettings() {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarLoading, setAvatarLoading] = useState<'upload' | 'remove' | null>(null);
   const [fileInputRef, setFileInputRef] = useState<HTMLInputElement | null>(null);
-  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
   const handleRemovePhoto = async () => {
@@ -178,8 +146,23 @@ export default function ProfileSettings() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-emerald-500 to-teal-500 bg-clip-text text-transparent">
+            Profile Settings
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Keep your profile up to date across all teams.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 dark:border-emerald-500/30 bg-white/70 dark:bg-slate-900/70 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          Live profile
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+        </div>
+      </div>
+
       {/* Avatar Section */}
-      <Card className="p-8 border-0 shadow-md">
+      <Card className="p-8 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-slate-900/70 shadow-xl backdrop-blur-xl">
         <div className="flex items-center gap-6">
           <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-2xl text-white font-bold shadow-lg relative">
             {avatarPreview ? (
@@ -203,7 +186,7 @@ export default function ProfileSettings() {
               <div className="flex gap-2">
                 <Button 
                   onClick={() => fileInputRef?.click()}
-                  className="bg-indigo-600 hover:bg-indigo-700"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                   type="button"
                   disabled={isSaving || avatarLoading === 'upload'}
                 >
@@ -213,7 +196,7 @@ export default function ProfileSettings() {
                 {avatarPreview && (
                   <Button
                     variant="outline"
-                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                    className="border-white/30 dark:border-white/15 text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-white/10"
                     onClick={() => setShowCropper(true)}
                     type="button"
                     disabled={isSaving || avatarLoading === 'upload'}
@@ -224,7 +207,7 @@ export default function ProfileSettings() {
                 )}
                 <Button
                   variant="outline"
-                  className="border-red-600 text-red-600 hover:bg-red-50"
+                  className="border-red-300/80 text-red-700 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
                   onClick={handleRemovePhoto}
                   disabled={avatarLoading === 'remove' || isSaving || !avatarPreview}
                   type="button"
@@ -240,18 +223,20 @@ export default function ProfileSettings() {
                 onChange={handleAvatarChange}
                 className="hidden"
               />
-              <span className="text-xs text-gray-500 mt-2">Max 10MB. Allowed: JPG, PNG, WEBP, GIF</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Max 10MB. Allowed: JPG, PNG, WEBP, GIF
+              </span>
             </div>
           </div>
         </div>
       </Card>
 
       {/* Personal Information */}
-      <Card className="p-8 border-0 shadow-md">
+      <Card className="p-8 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-slate-900/70 shadow-xl backdrop-blur-xl">
         <h2 className="text-2xl font-bold mb-6">Personal Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               First Name
             </label>
             <Input
@@ -261,11 +246,11 @@ export default function ProfileSettings() {
               onChange={handleInputChange}
               placeholder="Enter first name"
               autoComplete="given-name"
-              className="h-11"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Last Name
             </label>
             <Input
@@ -275,18 +260,20 @@ export default function ProfileSettings() {
               onChange={handleInputChange}
               autoComplete="family-name"
               placeholder="Enter last name"
-              className="h-11"
+              className={inputClass}
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Email Address
+            </label>
             <Input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
               placeholder="Enter email"
-              className="h-11"
+              className={inputClass}
               disabled
             />
           </div>
@@ -314,12 +301,12 @@ export default function ProfileSettings() {
       </Card>
 
       {/* Account Status */}
-      <Card className="p-6 border-0 shadow-md bg-gradient-to-br from-green-50 to-emerald-50">
+      <Card className="p-6 border border-emerald-200/60 dark:border-emerald-500/30 shadow-md bg-gradient-to-br from-green-50/80 to-emerald-50/80 dark:from-emerald-900/20 dark:to-emerald-900/10">
         <div className="flex items-center gap-3">
           <CheckCircle className="w-6 h-6 text-green-600" />
           <div>
-            <h3 className="font-bold text-green-900">Account Active</h3>
-            <p className="text-sm text-green-700">Your account is active and verified</p>
+            <h3 className="font-bold text-green-900 dark:text-emerald-200">Account Active</h3>
+            <p className="text-sm text-green-700 dark:text-emerald-300">Your account is active and verified</p>
           </div>
         </div>
       </Card>

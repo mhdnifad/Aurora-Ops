@@ -2,6 +2,10 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import User from '../models/User';
+import Activity from '../models/Activity';
+import Session from '../models/Session';
+import Task from '../models/Task';
+import Project from '../models/Project';
 import { asyncHandler } from '../utils/helpers';
 import cloudinaryService from '../services/cloudinary.service';
 import { AuthorizationError, NotFoundError, ValidationError } from '../utils/errors';
@@ -9,12 +13,25 @@ import logger from '../utils/logger';
 import { PasswordUtil } from '../utils/password';
 import crypto from 'crypto';
 
+interface UserExtended {
+  _id: unknown;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string;
+  bio?: string;
+  phone?: string;
+  isActive?: boolean;
+  createdAt?: Date;
+  save: () => Promise<unknown>;
+}
+
 /**
  * Remove user avatar
  */
 export const removeAvatar = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const user = await User.findByIdAndUpdate(
-    req.user!._id,
+  const user = await User.findOneAndUpdate(
+    { _id: req.user!._id, deletedAt: null },
     { avatar: null },
     { new: true }
   );
@@ -32,7 +49,7 @@ export const removeAvatar = asyncHandler(async (req: AuthRequest, res: Response)
  * Get user profile
  */
 export const getUserProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const user = await User.findById(req.user!._id);
+  const user = await User.findOne({ _id: req.user!._id, deletedAt: null });
 
   if (!user) {
     throw new NotFoundError('User not found');
@@ -46,9 +63,9 @@ export const getUserProfile = asyncHandler(async (req: AuthRequest, res: Respons
       lastName: user.lastName,
       email: user.email,
       avatar: user.avatar,
-      bio: (user as any)?.bio,
-      phone: (user as any)?.phone,
-      isActive: (user as any)?.isActive,
+      bio: (user as UserExtended)?.bio,
+      phone: (user as UserExtended)?.phone,
+      isActive: (user as UserExtended)?.isActive,
       createdAt: user.createdAt,
     },
   });
@@ -60,8 +77,8 @@ export const getUserProfile = asyncHandler(async (req: AuthRequest, res: Respons
 export const updateUserProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { firstName, lastName, bio, phone } = req.body;
 
-  const user = await User.findByIdAndUpdate(
-    req.user!._id,
+  const user = await User.findOneAndUpdate(
+    { _id: req.user!._id, deletedAt: null },
     {
       firstName,
       lastName,
@@ -85,8 +102,8 @@ export const updateUserProfile = asyncHandler(async (req: AuthRequest, res: Resp
       lastName: user.lastName,
       email: user.email,
       avatar: user.avatar,
-      bio: (user as any)?.bio,
-      phone: (user as any)?.phone,
+      bio: (user as UserExtended)?.bio,
+      phone: (user as UserExtended)?.phone,
     },
   });
 });
@@ -117,8 +134,8 @@ export const uploadAvatar = asyncHandler(async (req: AuthRequest, res: Response)
     logger.info('Avatar stored as base64 (Cloudinary not configured)');
   }
 
-  const user = await User.findByIdAndUpdate(
-    req.user!._id,
+  const user = await User.findOneAndUpdate(
+    { _id: req.user!._id, deletedAt: null },
     {
       avatar: uploadedUrl,
     },
@@ -143,13 +160,13 @@ export const uploadAvatar = asyncHandler(async (req: AuthRequest, res: Response)
  * Get user preferences
  */
 export const getUserPreferences = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const user = await User.findById(req.user!._id);
+  const user = await User.findOne({ _id: req.user!._id, deletedAt: null });
 
   if (!user) {
     throw new NotFoundError('User not found');
   }
 
-  const preferences = (user as any).preferences || {};
+  const preferences = user.preferences || {};
 
   res.json({
     success: true,
@@ -174,8 +191,8 @@ export const updateUserPreferences = asyncHandler(async (req: AuthRequest, res: 
   const { theme, notifications, language, timezone, emailDigest } = req.body;
 
   // Store preferences in user document
-  const user = await User.findByIdAndUpdate(
-    req.user!._id,
+  const user = await User.findOneAndUpdate(
+    { _id: req.user!._id, deletedAt: null },
     {
       preferences: {
         theme: theme || 'light',
@@ -198,7 +215,7 @@ export const updateUserPreferences = asyncHandler(async (req: AuthRequest, res: 
 
   logger.info(`User preferences updated: ${user.email}`);
 
-  const preferences = (user as any).preferences || {};
+  const preferences = user.preferences || {};
 
   res.json({
     success: true,
@@ -220,13 +237,13 @@ export const updateUserPreferences = asyncHandler(async (req: AuthRequest, res: 
  * API Keys: List keys
  */
 export const listApiKeys = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const user = await User.findById(req.user!._id).select('apiKeys email');
+  const user = await User.findOne({ _id: req.user!._id, deletedAt: null }).select('apiKeys email');
 
   if (!user) {
     throw new NotFoundError('User not found');
   }
 
-  const keys = (user.apiKeys || []).filter((k: any) => !k.revokedAt).map((k: any) => ({
+  const keys = ((user.apiKeys || []) as Array<{ revokedAt?: Date; _id: unknown; label: string; token?: string; createdAt: Date; lastUsedAt?: Date }>).filter((k) => !k.revokedAt).map((k) => ({
     id: k._id,
     label: k.label,
     createdAt: k.createdAt,
@@ -249,8 +266,8 @@ export const createApiKey = asyncHandler(async (req: AuthRequest, res: Response)
 
   const token = `ak_${crypto.randomBytes(24).toString('hex')}`;
 
-  const user = await User.findByIdAndUpdate(
-    req.user!._id,
+  const user = await User.findOneAndUpdate(
+    { _id: req.user!._id, deletedAt: null },
     { $push: { apiKeys: { token, label: label.trim(), createdAt: new Date() } } },
     { new: true }
   ).select('apiKeys');
@@ -275,10 +292,10 @@ export const revokeApiKey = asyncHandler(async (req: AuthRequest, res: Response)
   const { id } = req.params;
   if (!id) throw new ValidationError('Key id is required');
 
-  const user = await User.findById(req.user!._id);
+  const user = await User.findOne({ _id: req.user!._id, deletedAt: null });
   if (!user) throw new NotFoundError('User not found');
 
-  const key = (user.apiKeys || []).find((k: any) => String(k._id) === id);
+  const key = ((user.apiKeys || []) as Array<{ _id: unknown; revokedAt?: Date }>).find((k) => String(k._id) === id);
   if (!key) throw new NotFoundError('API key not found');
 
   key.revokedAt = new Date();
@@ -292,14 +309,13 @@ export const revokeApiKey = asyncHandler(async (req: AuthRequest, res: Response)
  */
 export const getUserActivity = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { page = 1, limit = 20 } = req.query;
-  const Activity = require('../models/Activity').default;
 
-  const activities = await Activity.find({ user: req.user!._id })
+  const activities = await Activity.find({ user: req.user!._id, deletedAt: null })
     .limit(Number(limit))
     .skip((Number(page) - 1) * Number(limit))
     .sort({ createdAt: -1 });
 
-  const total = await Activity.countDocuments({ user: req.user!._id });
+  const total = await Activity.countDocuments({ user: req.user!._id, deletedAt: null });
 
   res.json({
     success: true,
@@ -317,13 +333,12 @@ export const getUserActivity = asyncHandler(async (req: AuthRequest, res: Respon
  * Get user sessions
  */
 export const getUserSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const Session = require('../models/Session').default;
 
-  const sessions = await Session.find({ userId: req.user!._id }).sort({ createdAt: -1 });
+  const sessions = await Session.find({ userId: req.user!._id, deletedAt: null }).sort({ createdAt: -1 });
 
   res.json({
     success: true,
-    data: sessions.map((session: any) => ({
+    data: (sessions as unknown as Array<{ _id: { toString: () => string }; userAgent: string; ipAddress: string; createdAt: Date; expiresAt: Date }>).map((session) => ({
       id: session._id,
       userAgent: session.userAgent,
       ipAddress: session.ipAddress,
@@ -339,18 +354,18 @@ export const getUserSessions = asyncHandler(async (req: AuthRequest, res: Respon
  */
 export const logoutFromSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { sessionId } = req.params;
-  const Session = require('../models/Session').default;
 
   const session = await Session.findOne({
     _id: sessionId,
     userId: req.user!._id,
+    deletedAt: null,
   });
 
   if (!session) {
     throw new NotFoundError('Session not found');
   }
 
-  await Session.updateOne({ _id: sessionId }, { $set: { deletedAt: new Date() } });
+  await Session.updateOne({ _id: sessionId }, { $set: { deletedAt: new Date(), isActive: false } });
 
   logger.info(`User logged out from session: ${req.user!.email}`);
 
@@ -364,9 +379,8 @@ export const logoutFromSession = asyncHandler(async (req: AuthRequest, res: Resp
  * Logout from all sessions
  */
 export const logoutFromAllSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const Session = require('../models/Session').default;
 
-  await Session.updateMany({ userId: req.user!._id }, { $set: { deletedAt: new Date() } });
+  await Session.updateMany({ userId: req.user!._id, deletedAt: null }, { $set: { deletedAt: new Date(), isActive: false } });
 
   logger.info(`User logged out from all sessions: ${req.user!.email}`);
 
@@ -383,7 +397,7 @@ export const deactivateAccount = asyncHandler(async (req: AuthRequest, res: Resp
   const { password } = req.body;
 
   // Verify password
-  const user = await User.findById(req.user!._id).select('+password');
+  const user = await User.findOne({ _id: req.user!._id, deletedAt: null }).select('+password');
   if (!user) {
     throw new NotFoundError('User not found');
   }
@@ -394,12 +408,11 @@ export const deactivateAccount = asyncHandler(async (req: AuthRequest, res: Resp
   }
 
   // Deactivate user
-  (user as any).isActive = false;
+  (user as UserExtended).isActive = false;
   await user.save();
 
   // Delete all sessions
-  const Session = require('../models/Session').default;
-  await Session.updateMany({ userId: req.user!._id }, { $set: { deletedAt: new Date() } });
+  await Session.updateMany({ userId: req.user!._id, deletedAt: null }, { $set: { deletedAt: new Date(), isActive: false } });
 
   logger.info(`User account deactivated: ${user.email}`);
 
@@ -413,8 +426,6 @@ export const deactivateAccount = asyncHandler(async (req: AuthRequest, res: Resp
  * Get user statistics
  */
 export const getUserStats = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { Task } = require('../models/Task');
-  const { Project } = require('../models/Project');
   const organizationId = req.organizationId;
 
   const myTasks = await Task.countDocuments({
@@ -455,3 +466,4 @@ export const getUserStats = asyncHandler(async (req: AuthRequest, res: Response)
     },
   });
 });
+

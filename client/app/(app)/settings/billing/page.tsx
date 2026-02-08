@@ -8,6 +8,8 @@ import { CreditCard, Check, Zap, Crown, Building2, Loader2, TrendingUp, Users, F
 import apiClient from '@/lib/api-client';
 import { motion } from 'framer-motion';
 import ContactSalesModal from '@/components/ui/contact-sales-modal';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 interface PlanFeature {
   name: string;
@@ -61,7 +63,7 @@ export default function BillingPage() {
         setSubscription((subscriptionResponse as any).data);
       }
     } catch (error) {
-      console.error('Error loading billing data:', error);
+      // Error loading billing data
       toast.error('Failed to load billing information');
     } finally {
       setIsLoading(false);
@@ -120,8 +122,24 @@ export default function BillingPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-24 rounded bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+          <div>
+            <div className="h-6 w-48 rounded bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+            <div className="mt-2 h-4 w-64 rounded bg-gray-100/80 dark:bg-gray-800/60 animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, idx) => (
+            <Card key={idx} className="p-6 border border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-md animate-pulse">
+              <div className="h-12 w-12 rounded-xl bg-gray-100/80 dark:bg-gray-800/60" />
+              <div className="mt-6 h-4 w-32 rounded bg-gray-100/80 dark:bg-gray-800/60" />
+              <div className="mt-3 h-6 w-20 rounded bg-gray-100/80 dark:bg-gray-800/60" />
+              <div className="mt-6 h-10 rounded bg-gray-100/80 dark:bg-gray-800/60" />
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -129,18 +147,32 @@ export default function BillingPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Billing & Plans
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Choose the perfect plan for your team
-        </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/settings">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Billing & Plans
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Choose the perfect plan for your team
+            </p>
+          </div>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Secure billing
+        </div>
       </div>
 
       {/* Current Subscription */}
       {subscription && (
-        <Card className="p-6 backdrop-blur-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200 dark:border-blue-800 shadow-xl">
+        <Card className="p-6 backdrop-blur-xl bg-gradient-to-br from-blue-50/80 to-purple-50/80 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/60 dark:border-blue-800/60 shadow-xl">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -173,7 +205,7 @@ export default function BillingPage() {
           </div>
 
           {/* Usage Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200/70 dark:border-white/10">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Users className="w-5 h-5 text-blue-600" />
@@ -251,7 +283,7 @@ export default function BillingPage() {
               className={`relative p-6 backdrop-blur-xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
                 plan.popular
                   ? 'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border-blue-500 shadow-xl scale-105'
-                  : 'bg-white/80 dark:bg-gray-900/80 border-gray-200 dark:border-gray-700'
+                  : 'bg-white/80 dark:bg-white/5 border-gray-200/60 dark:border-white/10'
               }`}
             >
               {plan.popular && (
@@ -337,7 +369,7 @@ export default function BillingPage() {
       </div>
 
       {/* FAQ or Additional Info */}
-      <Card className="p-6 backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border-white/20 shadow-xl">
+      <Card className="p-6 backdrop-blur-xl bg-white/80 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-xl">
         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           Need help choosing a plan?
         </h3>

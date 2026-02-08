@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { apiClient } from './api-client';
 import { AxiosError } from 'axios';
+import { useOrganization } from './organization-context';
 
 // ============ Auth Hooks ============
 
@@ -180,19 +181,26 @@ export const useCreateProject = (options?: UseMutationOptions<any, AxiosError, a
 };
 
 export const useGetProjects = (page: number = 1, limit: number = 20, archived: boolean = false, options?: UseQueryOptions<any, AxiosError>) => {
+  const { currentOrganization } = useOrganization();
+  const orgId = currentOrganization?._id;
+  const isEnabled = (options?.enabled ?? true) && !!orgId;
   return useQuery({
-    queryKey: ['projects', page, limit, archived],
+    queryKey: ['projects', orgId, page, limit, archived],
     queryFn: () => apiClient.getProjects(page, limit, archived),
+    enabled: isEnabled,
     staleTime: 5 * 60 * 1000,
     ...options,
   } as any);
 };
 
 export const useGetProject = (id: string, options?: UseQueryOptions<any, AxiosError>) => {
+  const { currentOrganization } = useOrganization();
+  const orgId = currentOrganization?._id;
+  const isEnabled = (options?.enabled ?? true) && !!id && !!orgId;
   return useQuery({
-    queryKey: ['project', id],
+    queryKey: ['project', orgId, id],
     queryFn: () => apiClient.getProject(id),
-    enabled: !!id,
+    enabled: isEnabled,
     staleTime: 5 * 60 * 1000,
     ...options,
   } as any);
@@ -234,10 +242,13 @@ export const useDeleteProject = (options?: UseMutationOptions<any, AxiosError, s
 };
 
 export const useGetProjectStats = (id: string, options?: UseQueryOptions<any, AxiosError>) => {
+  const { currentOrganization } = useOrganization();
+  const orgId = currentOrganization?._id;
+  const isEnabled = (options?.enabled ?? true) && !!id && !!orgId;
   return useQuery({
-    queryKey: ['projectStats', id],
+    queryKey: ['projectStats', orgId, id],
     queryFn: () => apiClient.getProjectStats(id),
-    enabled: !!id,
+    enabled: isEnabled,
     staleTime: 5 * 60 * 1000,
     ...options,
   } as any);
@@ -273,8 +284,11 @@ export const useGetProjectTasks = (
   filters?: { status?: string; priority?: string; assigneeId?: string; assignee?: string },
   options?: UseQueryOptions<any, AxiosError>
 ) => {
+  const { currentOrganization } = useOrganization();
+  const orgId = currentOrganization?._id;
+  const isEnabled = (options?.enabled ?? true) && !!projectId && !!orgId;
   return useQuery({
-    queryKey: ['projectTasks', projectId, page, limit, filters],
+    queryKey: ['projectTasks', orgId, projectId, page, limit, filters],
     queryFn: () =>
       apiClient.getProjectTasks(
         projectId,
@@ -284,7 +298,7 @@ export const useGetProjectTasks = (
         filters?.priority,
         filters?.assigneeId ?? filters?.assignee
       ),
-    enabled: !!projectId,
+    enabled: isEnabled,
     staleTime: 3 * 60 * 1000,
     ...options,
   } as any);

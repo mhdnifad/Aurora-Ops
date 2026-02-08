@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../config/constants';
 import logger from '../utils/logger';
@@ -11,7 +11,7 @@ export const errorHandler = (
   error: Error | AppError,
   req: Request,
   res: Response,
-  _next: NextFunction
+  /* _next: NextFunction */
 ) => {
   // Log error
   logger.error('Error occurred:', {
@@ -41,7 +41,7 @@ export const errorHandler = (
 
   // Handle Multer (file upload) errors
   if (error.name === 'MulterError') {
-    const code = (error as any).code;
+    const code = (error as { code?: string }).code;
     if (code === 'LIMIT_FILE_SIZE') {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
@@ -61,8 +61,9 @@ export const errorHandler = (
   }
 
   // Handle Mongoose duplicate key errors
-  if (error.name === 'MongoServerError' && (error as any).code === 11000) {
-    const field = Object.keys((error as any).keyPattern)[0];
+  if (error.name === 'MongoServerError' && (error as { code?: number }).code === 11000) {
+    const mongoError = error as unknown as { keyPattern: Record<string, unknown> };
+    const field = Object.keys(mongoError.keyPattern)[0];
     return res.status(HTTP_STATUS.CONFLICT).json({
       success: false,
       message: `${field} already exists`,
@@ -106,7 +107,7 @@ export const errorHandler = (
 export const notFoundHandler = (
   req: Request,
   res: Response,
-  _next: NextFunction
+  /* _next: NextFunction */
 ) => {
   return res.status(HTTP_STATUS.NOT_FOUND).json({
     success: false,

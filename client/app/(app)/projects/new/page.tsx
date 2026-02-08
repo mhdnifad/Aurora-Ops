@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { useCreateProject } from '@/lib/hooks';
 import { useOrganization } from '@/lib/organization-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ export default function NewProjectPage() {
   const [error, setError] = useState('');
   const router = useRouter();
   const { currentOrganization } = useOrganization();
+  const createProjectMutation = useCreateProject();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -63,13 +64,12 @@ export default function NewProjectPage() {
     setError('');
 
     try {
-      const response = await apiClient.createProject(
-        formData.name,
-        formData.description,
-        'folder',
-        '#3b82f6',
-        currentOrganization?._id
-      );
+      const response = await createProjectMutation.mutateAsync({
+        name: formData.name,
+        description: formData.description,
+        icon: 'folder',
+        color: '#3b82f6',
+      });
       
       toast.success('Project created successfully!');
       // Redirect to project detail page

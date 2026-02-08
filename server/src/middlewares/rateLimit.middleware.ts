@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit';
+import { Request, Response, NextFunction } from 'express';
 import redis from '../config/redis';
 import { RATE_LIMITS } from '../config/constants';
 import { getClientIp } from '../utils/helpers';
@@ -36,9 +37,9 @@ export const authLimiter = rateLimit({
 export const customRateLimiter = (options: {
   windowMs: number;
   max: number;
-  keyGenerator?: (req: any) => string;
+  keyGenerator?: (req: Request) => string;
 }) => {
-  return async (req: any, res: any, next: any) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const key = options.keyGenerator
         ? options.keyGenerator(req)
@@ -54,14 +55,15 @@ export const customRateLimiter = (options: {
       res.setHeader('X-RateLimit-Remaining', Math.max(0, options.max - count));
 
       if (count > options.max) {
-        return res.status(429).json({
+        res.status(429).json({
           success: false,
           message: 'Too many requests, please try again later',
         });
+        return;
       }
 
       next();
-    } catch (error) {
+    } catch {
       // If Redis fails, continue without rate limiting
       next();
     }
@@ -75,7 +77,9 @@ export const perUserLimiter = (options: { windowMs: number; max: number }) => {
   return customRateLimiter({
     ...options,
     keyGenerator: (req) => {
-      return req.user?.userId || getClientIp(req);
+      const authReq = req as { user?: { _id?: string } };
+      return authReq.user?._id || getClientIp(req);
     },
   });
 };
+

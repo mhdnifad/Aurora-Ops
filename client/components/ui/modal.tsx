@@ -33,9 +33,9 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
+      {/* Backdrop with animation */}
       <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 animate-fadeIn"
         onClick={onClose}
       />
 
@@ -43,25 +43,25 @@ export function Modal({
       <div className="flex min-h-full items-center justify-center p-4">
         <div
           className={cn(
-            'relative bg-white rounded-lg shadow-xl w-full',
+            'relative rounded-2xl backdrop-blur-2xl bg-gradient-to-br from-white/95 to-gray-50/95 dark:from-gray-900/95 dark:to-gray-800/95 shadow-2xl border border-gray-200/50 dark:border-gray-700/50 w-full animate-scaleIn',
             sizeClasses[size]
           )}
         >
           {/* Header */}
           {(title || description) && (
-            <div className="p-6 border-b">
+            <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
               <div className="flex items-start justify-between">
                 <div>
-                  {title && <h2 className="text-xl font-bold">{title}</h2>}
+                  {title && <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{title}</h2>}
                   {description && (
-                    <p className="text-sm text-gray-600 mt-1">{description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>
                   )}
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-300 hover:scale-110"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
             </div>

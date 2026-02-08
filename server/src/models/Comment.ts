@@ -68,8 +68,17 @@ const CommentSchema = new Schema<IComment>(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+CommentSchema.virtual('createdBy', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: '_id',
+  justOne: true,
+});
 
 // Compound index for task comments
 CommentSchema.index({ taskId: 1, createdAt: -1 });

@@ -15,6 +15,8 @@ import {
 } from '../validations/organization.validation';
 import emailService from '../services/email.service';
 import config from '../config/env';
+import { normalizeOrgRole } from '../utils/roles';
+import SocketManager from '../socket';
 
 /**
  * Create organization
@@ -29,7 +31,7 @@ export const createOrganization = asyncHandler(async (req: AuthRequest, res: Res
   }
 
   // Check if organization name already exists
-  const existingOrg = await Organization.findOne({ name });
+  const existingOrg = await Organization.findOne({ name, deletedAt: null });
   if (existingOrg) {
     throw new ConflictError('Organization name already exists');
   }
@@ -39,14 +41,15 @@ export const createOrganization = asyncHandler(async (req: AuthRequest, res: Res
     name,
     description,
     slug: slugify(name),
-    createdBy: req.user!.userId,
+    createdBy: req.user!._id,
   });
 
   // Add creator as member with Owner role
   await Membership.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
-    role: 'owner',
+    role: 'company_admin',
+    status: 'active',
   });
 
   logger.info(`Organization created: ${org.name} by ${req.user!.email}`);
@@ -64,14 +67,22 @@ export const getUserOrganizations = asyncHandler(async (req: AuthRequest, res: R
   const { page = 1, limit = 10 } = req.query;
 
   // Get memberships for user
-  const memberships = await Membership.find({ userId: req.user!.userId })
-    .populate('organizationId')
+  const memberships = await Membership.find({ 
+    userId: req.user!._id,
+    status: 'active',
+    deletedAt: null,
+  })
+    .populate({ path: 'organizationId', match: { deletedAt: null } })
     .limit(Number(limit))
     .skip((Number(page) - 1) * Number(limit));
 
-  const total = await Membership.countDocuments({ userId: req.user!.userId });
+  const total = await Membership.countDocuments({ 
+    userId: req.user!._id,
+    status: 'active',
+    deletedAt: null,
+  });
 
-  const organizations = memberships.map((m) => m.organizationId);
+  const organizations = memberships.map((m) => m.organizationId).filter(Boolean);
 
   res.json({
     success: true,
@@ -86,15 +97,16 @@ export const getUserOrganizations = asyncHandler(async (req: AuthRequest, res: R
 export const getOrganization = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
   // Check if user is member
   const membership = await Membership.findOne({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
+    deletedAt: null,
   });
 
   if (!membership) {
@@ -120,13 +132,13 @@ export const updateOrganization = asyncHandler(async (req: AuthRequest, res: Res
     throw new ValidationError('Invalid organization data');
   }
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
   // Check permissions
-  const canUpdate = await PermissionChecker.userHasPermission(req.user!.userId, org._id.toString(),
+  const canUpdate = await PermissionChecker.userHasPermission(req.user!._id, org._id.toString(),
     'update_organization'
   );
 
@@ -135,8 +147,8 @@ export const updateOrganization = asyncHandler(async (req: AuthRequest, res: Res
   }
 
   // Update organization
-  const updatedOrg = await Organization.findByIdAndUpdate(
-    id,
+  const updatedOrg = await Organization.findOneAndUpdate(
+    { _id: id, deletedAt: null },
     { name, description, slug: name ? slugify(name) : org.slug },
     { new: true, runValidators: true }
   );
@@ -146,7 +158,7 @@ export const updateOrganization = asyncHandler(async (req: AuthRequest, res: Res
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
     action: 'update_organization',
     entityType: 'Organization',
@@ -170,16 +182,17 @@ export const updateOrganization = asyncHandler(async (req: AuthRequest, res: Res
 export const deleteOrganization = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
   // Check if user is owner
   const membership = await Membership.findOne({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
     role: 'owner',
+    deletedAt: null,
   });
 
   if (!membership) {
@@ -195,7 +208,7 @@ export const deleteOrganization = asyncHandler(async (req: AuthRequest, res: Res
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
     action: 'delete_organization',
     entityType: 'Organization',
@@ -220,15 +233,16 @@ export const getOrganizationMembers = asyncHandler(async (req: AuthRequest, res:
   const { id } = req.params;
   const { page = 1, limit = 20 } = req.query;
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
   // Check if user is member
   const userMembership = await Membership.findOne({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
+    deletedAt: null,
   });
 
   if (!userMembership) {
@@ -236,12 +250,12 @@ export const getOrganizationMembers = asyncHandler(async (req: AuthRequest, res:
   }
 
   // Get members
-  const members = await Membership.find({ organizationId: org._id })
+  const members = await Membership.find({ organizationId: org._id, deletedAt: null })
     .populate('userId', 'firstName lastName email avatar')
     .limit(Number(limit))
     .skip((Number(page) - 1) * Number(limit));
 
-  const total = await Membership.countDocuments({ organizationId: org._id });
+  const total = await Membership.countDocuments({ organizationId: org._id, deletedAt: null });
 
   res.json({
     success: true,
@@ -263,13 +277,13 @@ export const inviteMember = asyncHandler(async (req: AuthRequest, res: Response)
     throw new ValidationError('Invalid invitation data');
   }
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
   // Check permissions
-  const canInvite = await PermissionChecker.userHasPermission(req.user!.userId, org._id.toString(),
+  const canInvite = await PermissionChecker.userHasPermission(req.user!._id, org._id.toString(),
     'manage_members'
   );
 
@@ -278,15 +292,16 @@ export const inviteMember = asyncHandler(async (req: AuthRequest, res: Response)
   }
 
   // Find user by email
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const user = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new ValidationError('User not found');
   }
 
   // Check if already a member
   const existingMembership = await Membership.findOne({
     userId: user._id,
     organizationId: org._id,
+    deletedAt: null,
   });
 
   if (existingMembership) {
@@ -303,8 +318,8 @@ export const inviteMember = asyncHandler(async (req: AuthRequest, res: Response)
   // Send invitation email (best-effort)
   try {
     if (emailService.isEnabled()) {
-      const inviter = await User.findById(req.user!.userId).select('firstName lastName email');
-      const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email : (req.user as any)?.email || 'Aurora Ops';
+      const inviter = await User.findById(req.user!._id).select('firstName lastName email');
+      const inviterName = inviter ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email : req.user!.email || 'Aurora Ops';
       const inviteUrl = `${config.frontendUrl}/dashboard`;
       await emailService.sendTeamInvitationEmail(email, inviterName, org.name, inviteUrl);
     } else {
@@ -319,7 +334,7 @@ export const inviteMember = asyncHandler(async (req: AuthRequest, res: Response)
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
     action: 'invite_member',
     entityType: 'Membership',
@@ -331,9 +346,16 @@ export const inviteMember = asyncHandler(async (req: AuthRequest, res: Response)
 
   logger.info(`Member invited to organization: ${email} to ${org.name}`);
 
+  const populatedMembership = await membership.populate('user', 'firstName lastName email avatar');
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(org._id.toString(), 'member:invited', {
+    member: populatedMembership,
+    organizationId: org._id.toString(),
+  });
+
   res.status(201).json({
     success: true,
-    data: await membership.populate('user', 'firstName lastName email avatar'),
+    data: populatedMembership,
   });
 });
 
@@ -344,18 +366,18 @@ export const updateMemberRole = asyncHandler(async (req: AuthRequest, res: Respo
   const { id, memberId } = req.params;
   const { role } = req.body;
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
-  const membership = await Membership.findById(memberId);
+  const membership = await Membership.findOne({ _id: memberId, deletedAt: null });
   if (!membership) {
     throw new NotFoundError('Member not found');
   }
 
   // Check permissions
-  const canUpdate = await PermissionChecker.userHasPermission(req.user!.userId, org._id.toString(),
+  const canUpdate = await PermissionChecker.userHasPermission(req.user!._id, org._id.toString(),
     'manage_members'
   );
 
@@ -364,12 +386,12 @@ export const updateMemberRole = asyncHandler(async (req: AuthRequest, res: Respo
   }
 
   // Prevent changing owner role
-  if ((membership as any)?.role === 'owner') {
+  if (normalizeOrgRole(membership.role) === 'company_admin') {
     throw new AuthorizationError('Cannot change owner role');
   }
 
   // Update role
-  (membership as any).role = role;
+  membership.role = role;
   await membership.save();
 
   // Log audit
@@ -377,7 +399,7 @@ export const updateMemberRole = asyncHandler(async (req: AuthRequest, res: Respo
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
     action: 'update_member_role',
     entityType: 'Membership',
@@ -389,9 +411,16 @@ export const updateMemberRole = asyncHandler(async (req: AuthRequest, res: Respo
 
   logger.info(`Member role updated in organization: ${org.name}`);
 
+  const populatedMembership = await membership.populate('user', 'firstName lastName email avatar');
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(org._id.toString(), 'member:role_updated', {
+    member: populatedMembership,
+    organizationId: org._id.toString(),
+  });
+
   res.json({
     success: true,
-    data: await membership.populate('user', 'firstName lastName email avatar'),
+    data: populatedMembership,
   });
 });
 
@@ -401,18 +430,18 @@ export const updateMemberRole = asyncHandler(async (req: AuthRequest, res: Respo
 export const removeMember = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id, memberId } = req.params;
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
-  const membership = await Membership.findById(memberId);
+  const membership = await Membership.findOne({ _id: memberId, deletedAt: null });
   if (!membership) {
     throw new NotFoundError('Member not found');
   }
 
   // Check permissions
-  const canRemove = await PermissionChecker.userHasPermission(req.user!.userId, org._id.toString(),
+  const canRemove = await PermissionChecker.userHasPermission(req.user!._id, org._id.toString(),
     'manage_members'
   );
 
@@ -421,7 +450,7 @@ export const removeMember = asyncHandler(async (req: AuthRequest, res: Response)
   }
 
   // Prevent removing owner
-  if ((membership as any)?.role === 'owner') {
+  if (normalizeOrgRole(membership.role) === 'company_admin') {
     throw new AuthorizationError('Cannot remove organization owner');
   }
 
@@ -434,7 +463,7 @@ export const removeMember = asyncHandler(async (req: AuthRequest, res: Response)
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
     action: 'remove_member',
     entityType: 'Membership',
@@ -445,6 +474,13 @@ export const removeMember = asyncHandler(async (req: AuthRequest, res: Response)
   });
 
   logger.info(`Member removed from organization: ${org.name}`);
+
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(org._id.toString(), 'member:removed', {
+    memberId: membership._id,
+    userId: membership.userId,
+    organizationId: org._id.toString(),
+  });
 
   res.json({
     success: true,
@@ -458,15 +494,16 @@ export const removeMember = asyncHandler(async (req: AuthRequest, res: Response)
 export const leaveOrganization = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  const org = await Organization.findById(id);
+  const org = await Organization.findOne({ _id: id, deletedAt: null });
   if (!org) {
     throw new NotFoundError('Organization not found');
   }
 
   // Find membership
   const membership = await Membership.findOne({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
+    deletedAt: null,
   });
 
   if (!membership) {
@@ -474,7 +511,7 @@ export const leaveOrganization = asyncHandler(async (req: AuthRequest, res: Resp
   }
 
   // Prevent owner from leaving
-  if (membership.role === 'owner') {
+  if (normalizeOrgRole(membership.role) === 'company_admin') {
     throw new AuthorizationError('Owner cannot leave organization. Transfer ownership first.');
   }
 
@@ -487,7 +524,7 @@ export const leaveOrganization = asyncHandler(async (req: AuthRequest, res: Resp
   const ip = fwd.split(',')[0].trim() || (req.socket?.remoteAddress as string) || 'unknown';
   const ua = (req.headers['user-agent'] as string) || 'unknown';
   await AuditLog.create({
-    userId: req.user!.userId,
+    userId: req.user!._id,
     organizationId: org._id,
     action: 'leave_organization',
     entityType: 'Membership',
@@ -499,8 +536,16 @@ export const leaveOrganization = asyncHandler(async (req: AuthRequest, res: Resp
 
   logger.info(`User left organization: ${org.name}`);
 
+  const socketManager = SocketManager.getInstance();
+  socketManager?.emitOrgEvent(org._id.toString(), 'member:left', {
+    memberId: membership._id,
+    userId: membership.userId,
+    organizationId: org._id.toString(),
+  });
+
   res.json({
     success: true,
     message: 'Left organization',
   });
 });
+

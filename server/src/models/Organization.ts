@@ -15,6 +15,9 @@ export interface IOrganization extends Document {
   stripeSubscriptionId?: string;
   subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing';
   subscriptionEndDate?: Date;
+  billingName?: string;
+  billingEmail?: string;
+  billingAddress?: string;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -77,6 +80,18 @@ const OrganizationSchema = new Schema<IOrganization>(
     },
     subscriptionEndDate: {
       type: Date,
+      default: null,
+    },
+    billingName: {
+      type: String,
+      default: null,
+    },
+    billingEmail: {
+      type: String,
+      default: null,
+    },
+    billingAddress: {
+      type: String,
       default: null,
     },
     createdBy: {
