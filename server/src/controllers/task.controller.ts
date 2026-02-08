@@ -348,9 +348,9 @@ export const deleteTask = asyncHandler(async (req: AuthRequest, res: Response) =
 
   const socketManager = SocketManager.getInstance();
   socketManager?.broadcastTaskUpdate({
-    assigneeId: task.assigneeId,
-    taskId: task._id,
-    projectId: task.projectId,
+    assigneeId: task.assigneeId?.toString(),
+    taskId: task._id.toString(),
+    projectId: task.projectId.toString(),
   } as { assigneeId?: string; taskId?: string; projectId?: string }, 'deleted');
   socketManager?.emitOrgEvent(organizationId, 'task:deleted', {
     taskId: task._id,
