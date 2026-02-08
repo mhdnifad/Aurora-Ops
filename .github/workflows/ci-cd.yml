@@ -95,8 +95,14 @@ jobs:
       - name: Copy .env.example to .env (backend)
         run: cp server/.env.example server/.env
 
-      - name: Copy .env.example to .env (before docker compose up)
-        run: cp server/.env.example server/.env
+      - name: Ensure .env is present in server directory
+        run: |
+          cp server/.env.example server/.env
+          ls -l server/.env
+
+      - name: Run Docker Compose up (with correct working directory)
+        run: docker compose up -d
+        working-directory: ${{ github.workspace }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
