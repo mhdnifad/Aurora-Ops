@@ -92,6 +92,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Copy .env.example to .env (backend)
+        run: cp server/.env.example server/.env
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -141,7 +144,7 @@ jobs:
       - name: Deploy to production server
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PROD_HOST }}
+          host: ${{ secrets.PROD_HOST }} # Set this secret in your repo (production server IP or hostname)
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
@@ -160,5 +163,5 @@ jobs:
         with:
           status: ${{ job.status }}
           text: 'Production deployment completed!'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }} # Set this secret in your repo
         if: always()
