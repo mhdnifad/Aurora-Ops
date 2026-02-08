@@ -98,7 +98,7 @@ export const createTask = asyncHandler(async (req: AuthRequest, res: Response) =
 
   const populatedTask = await task.populate(['assigneeId', 'createdBy', 'projectId']);
   const socketManager = SocketManager.getInstance();
-  socketManager?.broadcastTaskUpdate(populatedTask as any, 'created');
+  socketManager?.broadcastTaskUpdate(populatedTask as unknown as { assigneeId?: string; assignedTo?: string; status?: string }, 'created');
   socketManager?.emitOrgEvent(organizationId, 'task:created', { task: populatedTask });
 
   res.status(201).json({
@@ -291,7 +291,7 @@ export const updateTask = asyncHandler(async (req: AuthRequest, res: Response) =
   const populatedUpdatedTask = await updatedTask?.populate(['assigneeId', 'createdBy', 'projectId']);
   const socketManager = SocketManager.getInstance();
   if (populatedUpdatedTask) {
-    socketManager?.broadcastTaskUpdate(populatedUpdatedTask as any, 'updated');
+    socketManager?.broadcastTaskUpdate(populatedUpdatedTask as unknown as { assigneeId?: string; assignedTo?: string; status?: string }, 'updated');
     socketManager?.emitOrgEvent(organizationId, 'task:updated', { task: populatedUpdatedTask });
   }
 
@@ -351,7 +351,7 @@ export const deleteTask = asyncHandler(async (req: AuthRequest, res: Response) =
     assigneeId: task.assigneeId,
     taskId: task._id,
     projectId: task.projectId,
-  } as any, 'deleted');
+  } as { assigneeId?: string; taskId?: string; projectId?: string }, 'deleted');
   socketManager?.emitOrgEvent(organizationId, 'task:deleted', {
     taskId: task._id,
     projectId: task.projectId,

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+// Add global type for EventListenerOrEventListenerObject if missing
+type EventListenerOrEventListenerObject = EventListener | { handleEvent(evt: Event): void };
 
 const DEFAULT_INNER_GRADIENT = 'linear-gradient(145deg,#60496e8c 0%,#71C4FF44 100%)';
 
