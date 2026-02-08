@@ -67,8 +67,8 @@ interface CarouselItemProps {
   itemWidth: number;
   round: boolean;
   trackItemOffset: number;
-  x: number;
-  transition: string | undefined;
+  x: import('motion').MotionValue<number>;
+  transition: import('motion').Transition<any> | undefined;
 }
 
 function CarouselItemComponent({ item, index, itemWidth, round, trackItemOffset, x, transition }: CarouselItemProps) {
@@ -87,7 +87,7 @@ function CarouselItemComponent({ item, index, itemWidth, round, trackItemOffset,
       style={{
         width: itemWidth,
         height: round ? itemWidth : '100%',
-        rotateY: rotateY,
+        rotateY,
         ...(round && { borderRadius: '50%' })
       }}
       transition={transition}
@@ -266,7 +266,7 @@ export default function Carousel({
         onAnimationComplete={handleAnimationComplete}
       >
         {itemsForRender.map((item, index) => (
-          <CarouselItem
+          <CarouselItemComponent
             key={`${item?.id ?? index}-${index}`}
             item={item}
             index={index}
