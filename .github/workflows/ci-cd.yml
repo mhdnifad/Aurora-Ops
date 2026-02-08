@@ -126,6 +126,8 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+        # Note: 'Resource not accessible by integration' is a GitHub limitation for forks or missing permissions.
 
   # Deploy to Production
   deploy-production:
@@ -141,10 +143,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.PROD_HOST }}" ] || [ -z "${{ secrets.PROD_USERNAME }}" ] || [ -z "${{ secrets.PROD_SSH_KEY }}" ]; then
+            echo "❌ Missing required production deploy secrets (PROD_HOST, PROD_USERNAME, PROD_SSH_KEY)."
+            exit 1
+          fi
+          if [ -z "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            echo "❌ Missing required Slack webhook secret (SLACK_WEBHOOK_URL)."
+            exit 1
+          fi
+
       - name: Deploy to production server
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PROD_HOST }} # Set this secret in your repo (production server IP or hostname)
+          host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
@@ -163,5 +176,21 @@ jobs:
         with:
           status: ${{ job.status }}
           text: 'Production deployment completed!'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }} # Set this secret in your repo
+          fields: repo,commit,author
+          custom_payload: |
+            {
+              "text": "Production deployment completed!",
+              "attachments": [
+                {
+                  "color": "#36a64f",
+                  "fields": [
+                    {"title": "Status", "value": "${{ job.status }}", "short": true},
+                    {"title": "Repo", "value": "${{ github.repository }}", "short": true}
+                  ]
+                }
+              ]
+            }
+          mention: channel
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         if: always()
