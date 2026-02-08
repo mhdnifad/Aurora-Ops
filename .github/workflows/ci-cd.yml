@@ -90,33 +90,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build backend image (local only)
+        run: docker build -t aurora-ops-backend ./server
 
-      - name: Build and push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./server
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:latest
-            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-backend:buildcache,mode=max
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./client
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:latest
-            ${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/aurora-ops-frontend:buildcache,mode=max
+      - name: Build frontend image (local only)
+        run: docker build -t aurora-ops-frontend ./client
 
   # Security Scan
   security-scan:
