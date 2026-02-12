@@ -12,6 +12,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Copy .env.example to .env (backend)
+        run: cp server/.env.example server/.env
+
       - name: Build Docker containers
         run: docker compose build
 
