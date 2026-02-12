@@ -486,7 +486,7 @@ PORT=5000
 FRONTEND_URL=http://localhost:3000
 
 # Database
-MONGODB_URI=mongodb://mongodb:27017/aurora-ops
+MONGODB_URI=mongodb+srv://nifad:nifad%40123@<cluster-url>/aurora-ops?retryWrites=true&w=majority
 REDIS_URL=redis://redis:6379
 
 # JWT

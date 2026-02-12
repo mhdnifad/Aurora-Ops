@@ -50,6 +50,7 @@ services:
       - ./server/.env
     environment:
       NODE_ENV: production
+      # For local/dev only. In production (Render), set MONGODB_URI to your Atlas URI in the dashboard.
       MONGODB_URI: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-admin123}@mongodb:27017/aurora-ops?authSource=admin
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379
       FRONTEND_URL: http://localhost:3000
