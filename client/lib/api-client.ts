@@ -197,31 +197,31 @@ class ApiClient {
     return this.request<{
       user: any;
       tokens: AuthTokens;
-    }>('POST', 'auth/register', { firstName, lastName, email, password, passwordConfirm });
+    }>('POST', '/api/auth/register', { firstName, lastName, email, password, passwordConfirm });
   }
 
   async login(email: string, password: string) {
     return this.request<{
       user: any;
       tokens: AuthTokens;
-    }>('POST', 'auth/login', { email, password });
+    }>('POST', '/api/auth/login', { email, password });
   }
 
   async logout() {
-    await this.request('POST', 'auth/logout');
+    await this.request('POST', '/api/auth/logout');
     this.clearTokens();
   }
 
   async getCurrentUser() {
-    return this.request<{ user: any }>('GET', 'auth/me');
+    return this.request<{ user: any }>('GET', '/api/auth/me');
   }
 
   async forgotPassword(email: string) {
-    return this.request('POST', 'auth/forgot-password', { email });
+    return this.request('POST', '/api/auth/forgot-password', { email });
   }
 
   async resetPassword(userId: string, resetToken: string, password: string, passwordConfirm: string) {
-    return this.request('POST', 'auth/reset-password', {
+    return this.request('POST', '/api/auth/reset-password', {
       userId,
       resetToken,
       password,
@@ -230,7 +230,7 @@ class ApiClient {
   }
 
   async changePassword(currentPassword: string, newPassword: string, newPasswordConfirm?: string) {
-    return this.request('POST', 'auth/change-password', {
+    return this.request('POST', '/api/auth/change-password', {
       currentPassword,
       newPassword,
       newPasswordConfirm: newPasswordConfirm || newPassword,
