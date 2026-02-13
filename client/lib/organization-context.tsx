@@ -116,7 +116,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const response = await apiClient.get('user/role');
+        const response = await apiClient.get('/api/user/role');
         const role = (response as any)?.data?.role;
         if (role) {
           setUserRole(normalizeUserRole(role));
