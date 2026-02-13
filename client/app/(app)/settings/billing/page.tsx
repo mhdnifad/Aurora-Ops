@@ -52,8 +52,8 @@ export default function BillingPage() {
     setIsLoading(true);
     try {
       const [plansResponse, subscriptionResponse] = await Promise.all([
-        apiClient.request('GET', 'billing/plans'),
-        apiClient.request('GET', 'billing/subscription'),
+        apiClient.request('GET', '/api/billing/plans'),
+        apiClient.request('GET', '/api/billing/subscription'),
       ]);
 
       if (plansResponse && (plansResponse as any).data) {
@@ -107,7 +107,7 @@ export default function BillingPage() {
     }
     (async () => {
       try {
-        const resp = await apiClient.request('POST', 'billing/checkout', { planId });
+        const resp = await apiClient.request('POST', '/api/billing/checkout', { planId });
         const url = (resp as any)?.checkoutUrl;
         if (url) {
           window.location.href = url;

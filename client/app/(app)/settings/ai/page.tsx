@@ -65,7 +65,7 @@ export default function AISettingsPage() {
   const loadAIStatus = async () => {
     setIsLoading(true);
     try {
-      const response = await apiClient.request<AIStatus>('GET', 'ai/status');
+      const response = await apiClient.request<AIStatus>('GET', '/api/ai/status');
       if (response) {
         setAiStatus(response);
       }

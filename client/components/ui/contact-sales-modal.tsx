@@ -50,25 +50,25 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Your Name</label>
-              <Input value={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()} disabled />
+              <label htmlFor="contact-name" className="text-sm font-medium text-gray-700">Your Name</label>
+              <Input id="contact-name" name="name" value={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()} disabled />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
-              <Input value={user?.email || ''} disabled />
+              <label htmlFor="contact-email" className="text-sm font-medium text-gray-700">Email</label>
+              <Input id="contact-email" name="email" value={user?.email || ''} disabled />
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Company (optional)</label>
-            <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Your company" />
+            <label htmlFor="contact-company" className="text-sm font-medium text-gray-700">Company (optional)</label>
+            <Input id="contact-company" name="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Your company" />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Subject</label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" />
+            <label htmlFor="contact-subject" className="text-sm font-medium text-gray-700">Subject</label>
+            <Input id="contact-subject" name="subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Message</label>
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell us about your requirements" rows={5} />
+            <label htmlFor="contact-message" className="text-sm font-medium text-gray-700">Message</label>
+            <Textarea id="contact-message" name="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell us about your requirements" rows={5} />
           </div>
         </div>
         <ModalFooter>
