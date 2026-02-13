@@ -248,19 +248,19 @@ class ApiClient {
 
   // Organization endpoints
   async createOrganization(name: string, description: string) {
-    return this.request<any>('POST', 'organizations', { name, description });
+    return this.request<any>('POST', '/api/organizations', { name, description });
   }
 
   async getOrganizations(page: number = 1, limit: number = 10) {
-    return this.request<any>('GET', `organizations?page=${page}&limit=${limit}`);
+    return this.request<any>('GET', `/api/organizations?page=${page}&limit=${limit}`);
   }
 
   async getOrganization(id: string) {
-    return this.request<any>('GET', `organizations/${id}`);
+    return this.request<any>('GET', `/api/organizations/${id}`);
   }
 
   async updateOrganization(id: string, name: string, description: string) {
-    return this.request<any>('PUT', `organizations/${id}`, { name, description });
+    return this.request<any>('PUT', `/api/organizations/${id}`, { name, description });
   }
 
   // API Keys endpoints
@@ -277,27 +277,27 @@ class ApiClient {
   }
 
   async deleteOrganization(id: string) {
-    return this.request('DELETE', `organizations/${id}`);
+    return this.request('DELETE', `/api/organizations/${id}`);
   }
 
   async getOrganizationMembers(id: string, page: number = 1, limit: number = 20) {
-    return this.request<any>('GET', `organizations/${id}/members?page=${page}&limit=${limit}`);
+    return this.request<any>('GET', `/api/organizations/${id}/members?page=${page}&limit=${limit}`);
   }
 
   async inviteOrganizationMember(id: string, email: string, role: string) {
-    return this.request<any>('POST', `organizations/${id}/members/invite`, { email, role });
+    return this.request<any>('POST', `/api/organizations/${id}/members/invite`, { email, role });
   }
 
   async updateOrganizationMemberRole(orgId: string, memberId: string, role: string) {
-    return this.request<any>('PUT', `organizations/${orgId}/members/${memberId}`, { role });
+    return this.request<any>('PUT', `/api/organizations/${orgId}/members/${memberId}`, { role });
   }
 
   async removeOrganizationMember(orgId: string, memberId: string) {
-    return this.request('DELETE', `organizations/${orgId}/members/${memberId}`);
+    return this.request('DELETE', `/api/organizations/${orgId}/members/${memberId}`);
   }
 
   async leaveOrganization(id: string) {
-    return this.request('POST', `organizations/${id}/leave`);
+    return this.request('POST', `/api/organizations/${id}/leave`);
   }
 
   // Project endpoints
