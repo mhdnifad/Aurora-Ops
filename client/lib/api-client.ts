@@ -485,27 +485,27 @@ class ApiClient {
   }
 
   async getSubscription(organizationId: string) {
-    return this.request<any>('GET', `billing/subscriptions/${organizationId}`);
+    return this.request<any>('GET', `/api/billing/subscriptions/${organizationId}`);
   }
 
   async createCheckoutSession(organizationId: string, plan: 'pro' | 'enterprise', billingPeriod: 'monthly' | 'annual' = 'monthly') {
-    return this.request<any>('POST', 'billing/checkout', { organizationId, plan, billingPeriod });
+    return this.request<any>('POST', '/api/billing/checkout', { organizationId, plan, billingPeriod });
   }
 
   async getInvoices(organizationId: string, page: number = 1, limit: number = 10) {
-    return this.request<any>('GET', `billing/invoices/${organizationId}?page=${page}&limit=${limit}`);
+    return this.request<any>('GET', `/api/billing/invoices/${organizationId}?page=${page}&limit=${limit}`);
   }
 
   async cancelSubscription(organizationId: string) {
-    return this.request<any>('POST', `billing/subscriptions/${organizationId}/cancel`);
+    return this.request<any>('POST', `/api/billing/subscriptions/${organizationId}/cancel`);
   }
 
   async downloadInvoice(invoiceId: string) {
-    return this.request<any>('GET', `billing/invoices/${invoiceId}/download`);
+    return this.request<any>('GET', `/api/billing/invoices/${invoiceId}/download`);
   }
 
   async getBillingUsage(organizationId: string) {
-    return this.request<any>('GET', `billing/usage/${organizationId}`);
+    return this.request<any>('GET', `/api/billing/usage/${organizationId}`);
   }
 
   async updateBillingInfo(
@@ -514,7 +514,7 @@ class ApiClient {
     billingEmail: string,
     billingAddress: string
   ) {
-    return this.request<any>('PUT', `billing/billing-info/${organizationId}`, {
+    return this.request<any>('PUT', `/api/billing/billing-info/${organizationId}`, {
       billingName,
       billingEmail,
       billingAddress,
