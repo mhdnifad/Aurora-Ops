@@ -38,8 +38,8 @@ COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 # Switch to non-root user
 USER nodejs
 
-# Expose port
-EXPOSE 5000
+# Expose port (use $PORT for Render compatibility)
+EXPOSE $PORT
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
