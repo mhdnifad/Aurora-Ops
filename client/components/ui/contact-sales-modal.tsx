@@ -29,7 +29,7 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
 
     setIsSubmitting(true);
     try {
-      await apiClient.request('POST', 'contact/sales', {
+      await apiClient.request('POST', '/api/contact/sales', {
         subject,
         message,
         company,

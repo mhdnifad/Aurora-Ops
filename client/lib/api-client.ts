@@ -264,15 +264,15 @@ class ApiClient {
 
   // API Keys endpoints
   async listApiKeys() {
-    return this.request<any[]>('GET', 'user/api-keys');
+    return this.request<any[]>('GET', '/api/user/api-keys');
   }
 
   async createApiKey(label: string) {
-    return this.request<any>('POST', 'user/api-keys', { label });
+    return this.request<any>('POST', '/api/user/api-keys', { label });
   }
 
   async revokeApiKey(id: string) {
-    return this.request<any>('DELETE', `user/api-keys/${id}`);
+    return this.request<any>('DELETE', `/api/user/api-keys/${id}`);
   }
 
   async deleteOrganization(id: string) {
@@ -452,7 +452,7 @@ class ApiClient {
 
   // AI endpoints
   async getAIStatus() {
-    return this.request<any>('GET', 'ai/status');
+    return this.request<any>('GET', '/api/ai/status');
   }
 
   async getPlatformStatus() {
@@ -481,7 +481,7 @@ class ApiClient {
 
   // Billing endpoints
   async getPlans() {
-    return this.request<any>('GET', 'billing/plans');
+    return this.request<any>('GET', '/api/billing/plans');
   }
 
   async getSubscription(organizationId: string) {
@@ -531,11 +531,11 @@ class ApiClient {
   }
 
   async getUserPreferences() {
-    return this.request<any>('GET', 'user/preferences');
+    return this.request<any>('GET', '/api/user/preferences');
   }
 
   async updateUserPreferences(theme: string, notifications: any, language: string, timezone: string, emailDigest?: string) {
-    return this.request<any>('PUT', 'user/preferences', { theme, notifications, language, timezone, emailDigest });
+    return this.request<any>('PUT', '/api/user/preferences', { theme, notifications, language, timezone, emailDigest });
   }
 
   async getUserActivity(page: number = 1, limit: number = 20) {
