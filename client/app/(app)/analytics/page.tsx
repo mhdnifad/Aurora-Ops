@@ -108,7 +108,7 @@ export default function AnalyticsDashboard() {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await apiClient.get('/analytics/dashboard');
+      const response = await apiClient.get('/api/analytics/dashboard');
       setAnalytics(response.data);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
@@ -119,7 +119,7 @@ export default function AnalyticsDashboard() {
 
   const fetchInsights = async () => {
     try {
-      const response = await apiClient.get('/analytics/insights');
+      const response = await apiClient.get('/api/analytics/insights');
       setInsights(response.data.insights);
     } catch (error) {
       console.error('Failed to fetch insights:', error);
