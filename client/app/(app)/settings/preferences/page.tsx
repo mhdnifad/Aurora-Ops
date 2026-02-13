@@ -201,7 +201,7 @@ export default function PreferencesPage() {
   const loadPreferences = async () => {
     setIsLoading(true);
     try {
-      const response = await apiClient.request('GET', 'user/preferences');
+      const response = await apiClient.request('GET', '/api/user/preferences');
       if (response && typeof response === 'object') {
         const data = (response as any).data || response;
         const loadedLanguage = data.language || 'en';
@@ -240,7 +240,7 @@ export default function PreferencesPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await apiClient.request('PUT', 'user/preferences', {
+      await apiClient.request('PUT', '/api/user/preferences', {
         theme: theme,
         language: prefs.language,
         timezone: prefs.timezone,
