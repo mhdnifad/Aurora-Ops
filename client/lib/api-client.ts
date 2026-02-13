@@ -106,7 +106,7 @@ class ApiClient {
           }
 
           try {
-            const response = await this.client.post('auth/refresh-token', {
+            const response = await this.client.post('/api/auth/refresh-token', {
               refreshToken: this.refreshToken,
             });
 
