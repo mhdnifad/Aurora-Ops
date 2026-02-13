@@ -64,10 +64,16 @@ class App {
 
     // CORS
     this.app.use(cors({
-      origin: this.allowedOrigins,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        if (this.allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'), false);
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      // Explicitly allow custom org header for preflight checks
       allowedHeaders: [
         'Content-Type',
         'Authorization',
@@ -75,6 +81,8 @@ class App {
         'X-Organization-Id',
         'X-Requested-With',
       ],
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
     }));
 
     // Compression
