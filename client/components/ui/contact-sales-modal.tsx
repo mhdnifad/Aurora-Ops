@@ -23,6 +23,7 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
   // Use number for browser setTimeout
   const timeoutRef = useRef<number | null>(null);
 
+  const [timedOut, setTimedOut] = useState(false);
   const handleSubmit = async () => {
     if (!subject.trim() || !message.trim()) {
       toast.error('Please provide both subject and message');
@@ -30,12 +31,14 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
     }
 
     setIsSubmitting(true);
+    setTimedOut(false);
     let didTimeout = false;
     timeoutRef.current = window.setTimeout(() => {
       didTimeout = true;
       setIsSubmitting(false);
-      toast.error('Request timed out. Please try again later.');
-    }, 10000); // 10 seconds
+      setTimedOut(true);
+      toast.error('Request timed out. Please try again.');
+    }, 20000); // 20 seconds
     try {
       await apiClient.request('POST', '/api/contact/sales', {
         subject,
@@ -93,8 +96,11 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
               </svg>
             )}
-            {isSubmitting ? 'Sending...' : 'Send Message'}
+            {isSubmitting ? 'Sending...' : timedOut ? 'Retry Send' : 'Send Message'}
           </Button>
+          {timedOut && (
+            <span className="text-xs text-red-500 ml-2">Request timed out. Please try again.</span>
+          )}
         </ModalFooter>
       </>
     </Modal>
