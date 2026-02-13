@@ -20,7 +20,8 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
   const [company, setCompany] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use number for browser setTimeout
+  const timeoutRef = useRef<number | null>(null);
 
   const handleSubmit = async () => {
     if (!subject.trim() || !message.trim()) {
@@ -30,7 +31,7 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
 
     setIsSubmitting(true);
     let didTimeout = false;
-    timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = window.setTimeout(() => {
       didTimeout = true;
       setIsSubmitting(false);
       toast.error('Request timed out. Please try again later.');
