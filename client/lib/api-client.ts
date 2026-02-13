@@ -28,13 +28,12 @@ class ApiClient {
   async uploadUserAvatar(file: File) {
     const formData = new FormData();
     formData.append('file', file); // Must match backend field name
-    return this.request<any>('POST', 'user/profile/avatar', formData);
+    return this.request<any>('POST', '/api/user/profile/avatar', formData);
   }
-    // ...existing code...
-    // Remove user avatar
-    async removeUserAvatar() {
-      return this.request<any>('DELETE', 'user/profile/avatar');
-    }
+  // Remove user avatar
+  async removeUserAvatar() {
+    return this.request<any>('DELETE', '/api/user/profile/avatar');
+  }
   private client: AxiosInstance;
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
@@ -239,11 +238,11 @@ class ApiClient {
 
   // User Profile endpoints
   async getProfile() {
-    return this.request<any>('GET', 'user/profile');
+    return this.request<any>('GET', '/api/user/profile');
   }
 
   async updateProfile(data: any) {
-    return this.request<any>('PUT', 'user/profile', data);
+    return this.request<any>('PUT', '/api/user/profile', data);
   }
 
   // Organization endpoints
@@ -524,11 +523,11 @@ class ApiClient {
 
   // User endpoints
   async getUserProfile() {
-    return this.request<any>('GET', 'user/profile');
+    return this.request<any>('GET', '/api/user/profile');
   }
 
   async updateUserProfile(firstName: string, lastName: string, bio: string, phone: string) {
-    return this.request<any>('PUT', 'user/profile', { firstName, lastName, bio, phone });
+    return this.request<any>('PUT', '/api/user/profile', { firstName, lastName, bio, phone });
   }
 
   async getUserPreferences() {
