@@ -280,7 +280,10 @@ class ApiClient {
   }
 
   async getOrganizationMembers(id: string, page: number = 1, limit: number = 20) {
-    return this.request<any>('GET', `/api/organizations/${id}/members?page=${page}&limit=${limit}`);
+    // Defensive: ensure page and limit are numbers
+    const safePage = typeof page === 'number' ? page : Number(page) || 1;
+    const safeLimit = typeof limit === 'number' ? limit : Number(limit) || 20;
+    return this.request<any>('GET', `/api/organizations/${id}/members?page=${safePage}&limit=${safeLimit}`);
   }
 
   async inviteOrganizationMember(id: string, email: string, role: string) {

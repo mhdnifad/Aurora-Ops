@@ -125,12 +125,24 @@ export const useGetOrganizationMembers = (
   limit: number = 20,
   options?: UseQueryOptions<any, AxiosError>
 ) => {
+  // Defensive: ensure page and limit are numbers
+  const safePage = typeof page === 'number' ? page : Number(page) || 1;
+  const safeLimit = typeof limit === 'number' ? limit : Number(limit) || 20;
   return useQuery({
-    queryKey: ['organizationMembers', orgId, page, limit],
-    queryFn: () => apiClient.getOrganizationMembers(orgId, page, limit),
+    queryKey: ['organizationMembers', orgId, safePage, safeLimit],
+    queryFn: () => apiClient.getOrganizationMembers(orgId, safePage, safeLimit),
     enabled: !!orgId,
     staleTime: 5 * 60 * 1000,
     ...options,
+    onError: (error: AxiosError) => {
+      if (error.response?.status === 401) {
+        // Show login required message
+        alert('You are not authenticated. Please log in.');
+      } else if (error.response?.status === 403) {
+        // Show permission denied message
+        alert('You do not have permission to access this resource.');
+      }
+    },
   } as any);
 };
 
