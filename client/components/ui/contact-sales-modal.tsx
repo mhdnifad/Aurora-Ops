@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Modal, ModalFooter } from './modal';
 import { Button } from './button';
 import { Input } from './input';
@@ -20,6 +20,7 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
   const [company, setCompany] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSubmit = async () => {
     if (!subject.trim() || !message.trim()) {
@@ -28,19 +29,30 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
     }
 
     setIsSubmitting(true);
+    let didTimeout = false;
+    timeoutRef.current = setTimeout(() => {
+      didTimeout = true;
+      setIsSubmitting(false);
+      toast.error('Request timed out. Please try again later.');
+    }, 10000); // 10 seconds
     try {
       await apiClient.request('POST', '/api/contact/sales', {
         subject,
         message,
         company,
       });
-      toast.success('Your message has been sent. Our team will reach out soon.');
-      onClose();
-      setMessage('');
+      if (!didTimeout) {
+        toast.success('Your message has been sent. Our team will reach out soon.');
+        onClose();
+        setMessage('');
+      }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Failed to send message');
+      if (!didTimeout) {
+        toast.error(error?.response?.data?.message || 'Failed to send message');
+      }
     } finally {
-      setIsSubmitting(false);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (!didTimeout) setIsSubmitting(false);
     }
   };
 
@@ -73,7 +85,13 @@ export default function ContactSalesModal({ isOpen, onClose }: ContactSalesModal
         </div>
         <ModalFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center gap-2">
+            {isSubmitting && (
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
+            )}
             {isSubmitting ? 'Sending...' : 'Send Message'}
           </Button>
         </ModalFooter>

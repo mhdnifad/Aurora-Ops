@@ -782,7 +782,16 @@ class InfiniteGridMenu {
       alpha: false
     });
     if (!gl) {
-      throw new Error('No WebGL 2 context!');
+      // Show fallback UI if WebGL is not supported
+      if (this.canvas) {
+        this.canvas.style.display = 'none';
+        const fallback = document.createElement('div');
+        fallback.className = 'infinite-menu-fallback';
+        fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#333;font-size:1.2rem;z-index:10;';
+        fallback.innerText = 'WebGL is not supported on your device.';
+        this.canvas.parentElement?.appendChild(fallback);
+      }
+      return;
     }
     this.gl = gl;
 
@@ -797,6 +806,14 @@ class InfiniteGridMenu {
     });
     if (!this.discProgram) {
       console.error('InfiniteMenu: failed to create WebGL program.');
+      if (this.canvas) {
+        this.canvas.style.display = 'none';
+        const fallback = document.createElement('div');
+        fallback.className = 'infinite-menu-fallback';
+        fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#333;font-size:1.2rem;z-index:10;';
+        fallback.innerText = 'WebGL failed to initialize.';
+        this.canvas.parentElement?.appendChild(fallback);
+      }
       this.destroy();
       return;
     }
