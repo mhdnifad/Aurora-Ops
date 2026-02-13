@@ -302,51 +302,51 @@ class ApiClient {
 
   // Project endpoints
   async createProject(name: string, description: string, icon: string, color: string, organizationId?: string) {
-    return this.request<any>('POST', 'projects', { name, description, icon, color, organizationId });
+    return this.request<any>('POST', '/api/projects', { name, description, icon, color, organizationId });
   }
 
   async getProjects(page: number = 1, limit: number = 20, archived: boolean = false) {
-    return this.request<any>('GET', `projects?page=${page}&limit=${limit}&archived=${archived}`);
+    return this.request<any>('GET', `/api/projects?page=${page}&limit=${limit}&archived=${archived}`);
   }
 
   async getProject(id: string) {
-    return this.request<any>('GET', `projects/${id}`);
+    return this.request<any>('GET', `/api/projects/${id}`);
   }
 
   async updateProject(id: string, name: string, description: string, icon: string, color: string) {
-    return this.request<any>('PUT', `projects/${id}`, { name, description, icon, color });
+    return this.request<any>('PUT', `/api/projects/${id}`, { name, description, icon, color });
   }
 
   async archiveProject(id: string) {
-    return this.request<any>('POST', `projects/${id}/archive`);
+    return this.request<any>('POST', `/api/projects/${id}/archive`);
   }
 
   async unarchiveProject(id: string) {
-    return this.request<any>('POST', `projects/${id}/unarchive`);
+    return this.request<any>('POST', `/api/projects/${id}/unarchive`);
   }
 
   async deleteProject(id: string) {
-    return this.request('DELETE', `projects/${id}`);
+    return this.request('DELETE', `/api/projects/${id}`);
   }
 
   async getProjectStats(id: string) {
-    return this.request<any>('GET', `projects/${id}/stats`);
+    return this.request<any>('GET', `/api/projects/${id}/stats`);
   }
 
   async inviteMember(projectId: string, email: string, role: string) {
-    return this.request<any>('POST', `projects/${projectId}/members/invite`, { email, role });
+    return this.request<any>('POST', `/api/projects/${projectId}/members/invite`, { email, role });
   }
 
   async getProjectMembers(projectId: string, page: number = 1, limit: number = 20) {
-    return this.request<any>('GET', `projects/${projectId}/members?page=${page}&limit=${limit}`);
+    return this.request<any>('GET', `/api/projects/${projectId}/members?page=${page}&limit=${limit}`);
   }
 
   async removeMember(projectId: string, memberId: string) {
-    return this.request('DELETE', `projects/${projectId}/members/${memberId}`);
+    return this.request('DELETE', `/api/projects/${projectId}/members/${memberId}`);
   }
 
   async updateMemberRole(projectId: string, memberId: string, role: string) {
-    return this.request<any>('PUT', `projects/${projectId}/members/${memberId}`, { role });
+    return this.request<any>('PUT', `/api/projects/${projectId}/members/${memberId}`, { role });
   }
 
   // Task endpoints
@@ -359,7 +359,7 @@ class ApiClient {
     dueDate?: string,
     assigneeId?: string
   ) {
-    return this.request<any>('POST', 'tasks', {
+    return this.request<any>('POST', '/api/tasks', {
       projectId,
       title,
       description,
@@ -378,7 +378,7 @@ class ApiClient {
     priority?: string,
     assigneeId?: string
   ) {
-    let url = `tasks/project/${projectId}?page=${page}&limit=${limit}`;
+    let url = `/api/tasks/project/${projectId}?page=${page}&limit=${limit}`;
     if (status) url += `&status=${status}`;
     if (priority) url += `&priority=${priority}`;
     if (assigneeId) url += `&assigneeId=${assigneeId}`;
@@ -386,14 +386,14 @@ class ApiClient {
   }
 
   async getMyTasks(page: number = 1, limit: number = 50, status?: string, priority?: string) {
-    let url = `tasks/my/tasks?page=${page}&limit=${limit}`;
+    let url = `/api/tasks/my/tasks?page=${page}&limit=${limit}`;
     if (status) url += `&status=${status}`;
     if (priority) url += `&priority=${priority}`;
     return this.request<any>('GET', url);
   }
 
   async getTask(id: string) {
-    return this.request<any>('GET', `tasks/${id}`);
+    return this.request<any>('GET', `/api/tasks/${id}`);
   }
 
   async updateTask(
@@ -405,7 +405,7 @@ class ApiClient {
     dueDate?: string,
     assigneeId?: string
   ) {
-    return this.request<any>('PUT', `tasks/${id}`, {
+    return this.request<any>('PUT', `/api/tasks/${id}`, {
       title,
       description,
       priority,
@@ -416,24 +416,24 @@ class ApiClient {
   }
 
   async deleteTask(id: string) {
-    return this.request('DELETE', `tasks/${id}`);
+    return this.request('DELETE', `/api/tasks/${id}`);
   }
 
   // Comment endpoints
   async createComment(taskId: string, content: string) {
-    return this.request<any>('POST', `tasks/${taskId}/comments`, { content });
+    return this.request<any>('POST', `/api/tasks/${taskId}/comments`, { content });
   }
 
   async getTaskComments(taskId: string, page: number = 1, limit: number = 50) {
-    return this.request<any>('GET', `tasks/${taskId}/comments?page=${page}&limit=${limit}`);
+    return this.request<any>('GET', `/api/tasks/${taskId}/comments?page=${page}&limit=${limit}`);
   }
 
   async updateComment(taskId: string, commentId: string, content: string) {
-    return this.request<any>('PUT', `tasks/${taskId}/comments/${commentId}`, { content });
+    return this.request<any>('PUT', `/api/tasks/${taskId}/comments/${commentId}`, { content });
   }
 
   async deleteComment(taskId: string, commentId: string) {
-    return this.request('DELETE', `tasks/${taskId}/comments/${commentId}`);
+    return this.request('DELETE', `/api/tasks/${taskId}/comments/${commentId}`);
   }
 
   // Task attachments
@@ -441,14 +441,14 @@ class ApiClient {
     const form = new FormData();
     form.append('file', file);
     // Use axios directly to preserve multipart headers
-    const response = await this.client.post<{ success: boolean; data: any }>(`tasks/${taskId}/attachments`, form, {
+    const response = await this.client.post<{ success: boolean; data: any }>(`/api/tasks/${taskId}/attachments`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data.data;
   }
 
   async deleteTaskAttachment(taskId: string, attachmentId: string) {
-    return this.request<any>('DELETE', `tasks/${taskId}/attachments/${attachmentId}`);
+    return this.request<any>('DELETE', `/api/tasks/${taskId}/attachments/${attachmentId}`);
   }
 
   // AI endpoints
