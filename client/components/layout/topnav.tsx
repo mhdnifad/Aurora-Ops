@@ -173,7 +173,7 @@ export function TopNav() {
                     ) : (
                       <>
                         <LogOut className="w-4 h-4" />
-                        {t('common.close')}
+                        {t('common.logout')}
                       </>
                     )}
                   </button>

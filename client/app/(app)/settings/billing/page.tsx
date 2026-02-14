@@ -43,6 +43,7 @@ export default function BillingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<'month' | 'year'>('month');
   const [showContactModal, setShowContactModal] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   useEffect(() => {
     loadBillingData();
@@ -50,6 +51,7 @@ export default function BillingPage() {
 
   const loadBillingData = async () => {
     setIsLoading(true);
+    setBillingError(null);
     try {
       const [plansResponse, subscriptionResponse] = await Promise.all([
         apiClient.request('GET', '/api/billing/plans'),
@@ -62,9 +64,15 @@ export default function BillingPage() {
       if (subscriptionResponse && (subscriptionResponse as any).data) {
         setSubscription((subscriptionResponse as any).data);
       }
-    } catch (error) {
-      // Error loading billing data
-      toast.error('Failed to load billing information');
+    } catch (error: any) {
+      let message = 'Failed to load billing information';
+      if (error?.response?.status === 403) {
+        message = 'You do not have permission to view billing information.';
+      } else if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        message = 'Request timed out. Please try again.';
+      }
+      setBillingError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -140,6 +148,17 @@ export default function BillingPage() {
             </Card>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (billingError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-6">
+        <div className="text-red-600 dark:text-red-400 text-lg font-semibold">{billingError}</div>
+        <Button onClick={loadBillingData} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow-lg">
+          Retry
+        </Button>
       </div>
     );
   }

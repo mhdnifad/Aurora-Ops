@@ -182,7 +182,7 @@ function NewTaskPage() {
                 className="w-full px-4 py-2.5 border-gray-200/70 dark:border-white/10 bg-gray-50/80 dark:bg-white/5 text-gray-700 dark:text-gray-200 rounded-lg"
                 disabled
               />
-              <input type="hidden" name="assigneeId" value={formData.assigneeId} />
+              <input type="hidden" id="assigneeId" name="assigneeId" value={formData.assigneeId} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Priority</label>

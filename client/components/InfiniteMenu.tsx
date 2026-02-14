@@ -359,7 +359,8 @@ function createShader(gl: WebGL2RenderingContext, type: number, source: string):
     return shader;
   }
 
-  console.error(gl.getShaderInfoLog(shader));
+  const log = gl.getShaderInfoLog(shader);
+  console.error('WebGL shader compile error:', log, '\nSource:', source);
   gl.deleteShader(shader);
   return null;
 }
@@ -373,12 +374,20 @@ function createProgram(
   const program = gl.createProgram();
   if (!program) return null;
 
+  let shaderError = false;
   [gl.VERTEX_SHADER, gl.FRAGMENT_SHADER].forEach((type, ndx) => {
     const shader = createShader(gl, type, shaderSources[ndx]);
     if (shader) {
       gl.attachShader(program, shader);
+    } else {
+      shaderError = true;
     }
   });
+
+  if (shaderError) {
+    gl.deleteProgram(program);
+    return null;
+  }
 
   if (transformFeedbackVaryings) {
     gl.transformFeedbackVaryings(program, transformFeedbackVaryings, gl.SEPARATE_ATTRIBS);
@@ -399,7 +408,8 @@ function createProgram(
     return program;
   }
 
-  console.error(gl.getProgramInfoLog(program));
+  const log = gl.getProgramInfoLog(program);
+  console.error('WebGL program link error:', log);
   gl.deleteProgram(program);
   return null;
 }
@@ -805,13 +815,14 @@ class InfiniteGridMenu {
       aInstanceMatrix: 3
     });
     if (!this.discProgram) {
-      console.error('InfiniteMenu: failed to create WebGL program.');
+      const errorMsg = 'InfiniteMenu: failed to create WebGL program. Check the console for shader and program errors.';
+      console.error(errorMsg);
       if (this.canvas) {
         this.canvas.style.display = 'none';
         const fallback = document.createElement('div');
         fallback.className = 'infinite-menu-fallback';
         fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#333;font-size:1.2rem;z-index:10;';
-        fallback.innerText = 'WebGL failed to initialize.';
+        fallback.innerText = errorMsg;
         this.canvas.parentElement?.appendChild(fallback);
       }
       this.destroy();
