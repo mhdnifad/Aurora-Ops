@@ -118,12 +118,38 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setIsConnected(false);
     });
 
+
     newSocket.on('error', (error) => {
-      // Socket error - silently handle
+      // Show user-friendly error for known socket errors
+      let message = 'A realtime connection error occurred.';
+      if (error && typeof error === 'object') {
+        if (error.message && error.message.includes('Session ID unknown')) {
+          message = 'Your session has expired or is invalid. Please refresh the page or log in again.';
+        } else if (error.message && error.message.includes('400')) {
+          message = 'Realtime connection failed (400 Bad Request). Please check your login and network.';
+        }
+      }
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert(message);
+      }
+      setIsConnected(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      // Connection error - silently handle
+      let message = 'Could not connect to realtime server.';
+      if (error && typeof error === 'object') {
+        if (error.message && error.message.includes('Session ID unknown')) {
+          message = 'Your session has expired or is invalid. Please refresh the page or log in again.';
+        } else if (error.message && error.message.includes('400')) {
+          message = 'Realtime connection failed (400 Bad Request). Please check your login and network.';
+        }
+      }
+      if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-alert
+        alert(message);
+      }
+      setIsConnected(false);
     });
 
     socketRef.current = newSocket;

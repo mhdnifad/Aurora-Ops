@@ -359,7 +359,19 @@ function createShader(gl: WebGL2RenderingContext, type: number, source: string):
     return shader;
   }
 
-  const log = gl.getShaderInfoLog(shader);
+  let log = gl.getShaderInfoLog(shader);
+  if (!log || log.trim() === '') {
+    log = 'Unknown error: The browser did not provide a shader error log. This may indicate lack of WebGL2/GLSL ES 3.0 support.';
+  }
+  // Show a visible error message in the DOM if possible
+  if (gl.canvas && gl.canvas.parentElement) {
+    const fallback = document.createElement('div');
+    fallback.className = 'infinite-menu-fallback';
+    fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#c00;font-size:1.2rem;z-index:10;';
+    fallback.innerText = 'WebGL shader compile error: ' + log;
+    gl.canvas.style.display = 'none';
+    gl.canvas.parentElement.appendChild(fallback);
+  }
   console.error('WebGL shader compile error:', log, '\nSource:', source);
   gl.deleteShader(shader);
   return null;
@@ -792,13 +804,13 @@ class InfiniteGridMenu {
       alpha: false
     });
     if (!gl) {
-      // Show fallback UI if WebGL is not supported
+      // Show fallback UI if WebGL2 is not supported
       if (this.canvas) {
         this.canvas.style.display = 'none';
         const fallback = document.createElement('div');
         fallback.className = 'infinite-menu-fallback';
-        fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#333;font-size:1.2rem;z-index:10;';
-        fallback.innerText = 'WebGL is not supported on your device.';
+        fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#c00;font-size:1.2rem;z-index:10;';
+        fallback.innerText = 'WebGL 2.0 is not supported in your browser or device. Please use a modern browser and GPU.';
         this.canvas.parentElement?.appendChild(fallback);
       }
       return;
