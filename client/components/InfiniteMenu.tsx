@@ -1150,6 +1150,22 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0 }) => {
     const canvas = canvasRef.current;
     let sketch: InfiniteGridMenu | null = null;
 
+    // Browser compatibility check for WebGL2/GLSL ES 3.0
+    function isWebGL2Supported() {
+      if (!canvas) return false;
+      const gl = canvas.getContext('webgl2');
+      if (!gl) return false;
+      // Try compiling a minimal GLSL ES 3.0 shader
+      const testVert = '#version 300 es\nvoid main() { gl_Position = vec4(0.0); }';
+      const shader = gl.createShader(gl.VERTEX_SHADER);
+      if (!shader) return false;
+      gl.shaderSource(shader, testVert);
+      gl.compileShader(shader);
+      const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+      gl.deleteShader(shader);
+      return success;
+    }
+
     const handleActiveItem = (index: number) => {
       if (!items.length) return;
       const itemIndex = index % items.length;
@@ -1157,6 +1173,22 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0 }) => {
     };
 
     if (canvas) {
+      if (!isWebGL2Supported()) {
+        canvas.style.display = 'none';
+        const fallback = document.createElement('div');
+        fallback.className = 'infinite-menu-fallback';
+        fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#c00;font-size:1.2rem;z-index:10;';
+        fallback.innerHTML =
+          '<div style="text-align:center">\n' +
+          '<b>WebGL2/GLSL ES 3.0 is not supported in your browser or device.</b><br>\n' +
+          'This feature requires a modern browser (Chrome, Firefox, Edge) and a compatible GPU.<br>\n' +
+          'Try updating your browser or switching devices.<br>\n' +
+          '<br>\n' +
+          '<a href="https://webglreport.com/?v=2" target="_blank" style="color:#0077cc;text-decoration:underline">Check your WebGL2 support</a>\n' +
+          '</div>';
+        canvas.parentElement?.appendChild(fallback);
+        return;
+      }
       sketch = new InfiniteGridMenu(
         canvas,
         items.length ? items : defaultItems,
