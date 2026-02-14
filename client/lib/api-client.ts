@@ -163,6 +163,15 @@ class ApiClient {
 
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_tokens');
+      // If not already on login, redirect with session expired flag
+      const currentPath = window.location.pathname;
+      const isLogin = currentPath.startsWith('/login');
+      const isRegister = currentPath.startsWith('/register');
+      const isReset = currentPath.startsWith('/reset-password');
+      if (!isLogin && !isRegister && !isReset) {
+        const search = window.location.search;
+        window.location.replace(`/login?session=expired`);
+      }
     }
 
     this.notifyAuthChange(false);
