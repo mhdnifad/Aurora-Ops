@@ -1146,16 +1146,16 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0 }) => {
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
   const [isMoving, setIsMoving] = useState<boolean>(false);
 
+  const [webgl2Supported, setWebgl2Supported] = useState(true);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     let sketch: InfiniteGridMenu | null = null;
 
-    // Browser compatibility check for WebGL2/GLSL ES 3.0
     function isWebGL2Supported() {
       if (!canvas) return false;
       const gl = canvas.getContext('webgl2');
       if (!gl) return false;
-      // Try compiling a minimal GLSL ES 3.0 shader
       const testVert = '#version 300 es\nvoid main() { gl_Position = vec4(0.0); }';
       const shader = gl.createShader(gl.VERTEX_SHADER);
       if (!shader) return false;
@@ -1174,21 +1174,11 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0 }) => {
 
     if (canvas) {
       if (!isWebGL2Supported()) {
+        setWebgl2Supported(false);
         canvas.style.display = 'none';
-        const fallback = document.createElement('div');
-        fallback.className = 'infinite-menu-fallback';
-        fallback.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fff;color:#c00;font-size:1.2rem;z-index:10;';
-        fallback.innerHTML =
-          '<div style="text-align:center">\n' +
-          '<b>WebGL2/GLSL ES 3.0 is not supported in your browser or device.</b><br>\n' +
-          'This feature requires a modern browser (Chrome, Firefox, Edge) and a compatible GPU.<br>\n' +
-          'Try updating your browser or switching devices.<br>\n' +
-          '<br>\n' +
-          '<a href="https://webglreport.com/?v=2" target="_blank" style="color:#0077cc;text-decoration:underline">Check your WebGL2 support</a>\n' +
-          '</div>';
-        canvas.parentElement?.appendChild(fallback);
         return;
       }
+      setWebgl2Supported(true);
       sketch = new InfiniteGridMenu(
         canvas,
         items.length ? items : defaultItems,
@@ -1225,84 +1215,107 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0 }) => {
 
   return (
     <div className="relative w-full h-full">
-      <canvas
-        id="infinite-grid-menu-canvas"
-        ref={canvasRef}
-        className="cursor-grab w-full h-full overflow-hidden relative outline-none active:cursor-grabbing"
-      />
-
-      {activeItem && (
+      {webgl2Supported ? (
         <>
-          <h2
-            className={`
-          select-none
-          absolute
-          font-black
-          [font-size:4rem]
-          left-[1.6em]
-          top-1/2
-          transform
-          translate-x-[20%]
-          -translate-y-1/2
-          transition-all
-          ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-          ${
-            isMoving
-              ? 'opacity-0 pointer-events-none duration-[100ms]'
-              : 'opacity-100 pointer-events-auto duration-[500ms]'
-          }
-        `}
-          >
-            {activeItem.title}
-          </h2>
-
-          <p
-            className={`
-          select-none
-          absolute
-          max-w-[10ch]
-          text-[1.5rem]
-          top-1/2
-          right-[1%]
-          transition-all
-          ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-          ${
-            isMoving
-              ? 'opacity-0 pointer-events-none duration-[100ms] translate-x-[-60%] -translate-y-1/2'
-              : 'opacity-100 pointer-events-auto duration-[500ms] translate-x-[-90%] -translate-y-1/2'
-          }
-        `}
-          >
-            {activeItem.description}
-          </p>
-
-          <div
-            onClick={handleButtonClick}
-            className={`
-          absolute
-          left-1/2
-          z-10
-          w-[60px]
-          h-[60px]
-          grid
-          place-items-center
-          bg-[#00ffff]
-          border-[5px]
-          border-black
-          rounded-full
-          cursor-pointer
-          transition-all
-          ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-          ${
-            isMoving
-              ? 'bottom-[-80px] opacity-0 pointer-events-none duration-[100ms] scale-0 -translate-x-1/2'
-              : 'bottom-[3.8em] opacity-100 pointer-events-auto duration-[500ms] scale-100 -translate-x-1/2'
-          }
-        `}
-          >
-            <p className="select-none relative text-[#060010] top-[2px] text-[26px]">&#x2197;</p>
-          </div>
+          <canvas
+            id="infinite-grid-menu-canvas"
+            ref={canvasRef}
+            className="cursor-grab w-full h-full overflow-hidden relative outline-none active:cursor-grabbing"
+          />
+          {activeItem && (
+            <>
+              <h2
+                className={`
+              select-none
+              absolute
+              font-black
+              [font-size:4rem]
+              left-[1.6em]
+              top-1/2
+              transform
+              translate-x-[20%]
+              -translate-y-1/2
+              transition-all
+              ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+              ${
+                isMoving
+                  ? 'opacity-0 pointer-events-none duration-[100ms]'
+                  : 'opacity-100 pointer-events-auto duration-[500ms]'
+              }
+            `}
+                >
+                  {activeItem.title}
+              </h2>
+              <p
+                className={`
+              select-none
+              absolute
+              max-w-[10ch]
+              text-[1.5rem]
+              top-1/2
+              right-[1%]
+              transition-all
+              ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+              ${
+                isMoving
+                  ? 'opacity-0 pointer-events-none duration-[100ms] translate-x-[-60%] -translate-y-1/2'
+                  : 'opacity-100 pointer-events-auto duration-[500ms] translate-x-[-90%] -translate-y-1/2'
+              }
+            `}
+                >
+                  {activeItem.description}
+              </p>
+              <div
+                onClick={handleButtonClick}
+                className={`
+              absolute
+              left-1/2
+              z-10
+              w-[60px]
+              h-[60px]
+              grid
+              place-items-center
+              bg-[#00ffff]
+              border-[5px]
+              border-black
+              rounded-full
+              cursor-pointer
+              transition-all
+              ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+              ${
+                isMoving
+                  ? 'bottom-[-80px] opacity-0 pointer-events-none duration-[100ms] scale-0 -translate-x-1/2'
+                  : 'bottom-[3.8em] opacity-100 pointer-events-auto duration-[500ms] scale-100 -translate-x-1/2'
+              }
+            `}
+                >
+                  <p className="select-none relative text-[#060010] top-[2px] text-[26px]">&#x2197;</p>
+              </div>
+            </>
+          )}
         </>
+      ) : (
+        <div className="infinite-menu-fallback flex flex-col items-center justify-center w-full h-full bg-white text-gray-800 p-8">
+          <h2 className="text-2xl font-bold mb-4">Menu</h2>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
+            {(items.length ? items : defaultItems).map((item, idx) => (
+              <li key={idx} className="border rounded-lg p-4 flex flex-col items-center bg-gray-50">
+                <img src={item.image} alt={item.title || 'Menu item'} className="w-24 h-24 object-cover rounded mb-2" />
+                <span className="font-semibold text-lg mb-1">{item.title || 'Untitled'}</span>
+                <span className="text-sm text-gray-600 mb-2">{item.description}</span>
+                {item.link && (
+                  <a href={item.link} target="_blank" rel="noopener" className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition">Open</a>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 text-center text-red-700">
+            <b>WebGL2/GLSL ES 3.0 is not supported in your browser or device.</b><br />
+            This feature requires a modern browser (Chrome, Firefox, Edge) and a compatible GPU.<br />
+            Try updating your browser or switching devices.<br />
+            <a href="https://webglreport.com/?v=2" target="_blank" className="text-blue-600 underline mt-2 inline-block">Check your WebGL2 support</a>
+          </div>
+        </div>
       )}
     </div>
   );
